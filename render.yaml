@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: markdown-converter
-    env: python
-    buildCommand: |
-      apt-get update && apt-get install -y libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 pandoc
-      pip install -r requirements.txt
-    startCommand: gunicorn app:app
