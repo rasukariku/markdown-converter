@@ -1,19 +1,17 @@
 # Base image
 FROM python:3.10-slim
 
-# Unlocking Microsoft Core Fonts by adding contrib and non-free repositories
+# Unlock Debian Repositories for contrib & non-free
 RUN sed -i -e 's/Components: main/Components: main contrib non-free/g' /etc/apt/sources.list.d/debian.sources || \
     sed -i -e 's/main/main contrib non-free/g' /etc/apt/sources.list
 
-# Agree to the EULA for Microsoft Core Fonts to allow installation without interactive prompts
+# Agree to Microsoft Core Fonts EULA
 RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     pandoc \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libharfbuzz0b \
+    wkhtmltopdf \
     fontconfig \
     ttf-mscorefonts-installer \
     && fc-cache -f -v \
@@ -33,10 +31,8 @@ ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH
 
 WORKDIR $HOME/app
-
-# Copy application files
 COPY --chown=user . $HOME/app
 
-# Run the application on port 7860
+# Run the application
 EXPOSE 7860
 CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app"]

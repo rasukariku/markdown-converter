@@ -315,18 +315,20 @@ def convert():
                     pythoncom.CoUninitialize()
             else:
                 try:
-                    import weasyprint
+                    import pdfkit
                     temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
                     temp_pdf.close()
                     
-                    html_string = pypandoc.convert_text(
-                        source_text_html, 
-                        'html', 
-                        format=input_format, 
-                        extra_args=['--webtex=https://latex.codecogs.com/svg.image?']
-                    )
+                    # KUNCI FIX: Kita gunakan MathJax v2.7 karena sangat stabil di dalam wkhtmltopdf
+                    extra_args = [
+                        '--standalone', 
+                        '--mathjax=https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-AMS_HTML'
+                    ]
+                    html_string = pypandoc.convert_text(source_text_html, 'html', format=input_format, extra_args=extra_args)
                     
-                    css_string = '''
+                    # Suntikkan gaya CSS MS Word
+                    css_injection = '''
+                    <style>
                     @page { size: A4; margin: 2.54cm; }
                     body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.5; text-align: justify; color: black; }
                     h1, h2, h3, h4 { line-height: 1.2; margin-bottom: 8pt; text-align: left; font-family: "Times New Roman", serif; }
@@ -338,16 +340,28 @@ def convert():
                     hr { border: 0; border-top: 1px solid #000; margin: 12pt 0; }
                     pre, code { font-family: "Courier New", monospace; font-size: 10.5pt; }
                     pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
-                    
-                    /* KUNCI FIX MATH SVG: Sejajarkan persis dengan teks agar tidak melayang */
-                    img { vertical-align: middle; max-width: 100%; }
+                    </style>
                     '''
-                    document_css = weasyprint.CSS(string=css_string)
-                    html_doc = weasyprint.HTML(string=html_string)
-                    html_doc.write_pdf(target=temp_pdf.name, stylesheets=[document_css])
+                    html_string = html_string.replace('</head>', f'{css_injection}</head>')
+                    
+                    # Konfigurasi Mesin WebKit PDF
+                    options = {
+                        'page-size': 'A4',
+                        'margin-top': '25.4mm',
+                        'margin-right': '25.4mm',
+                        'margin-bottom': '25.4mm',
+                        'margin-left': '25.4mm',
+                        'encoding': "UTF-8",
+                        'javascript-delay': '2000', # Tahan 2 detik agar animasi MathJax selesai merender rumus
+                        'enable-local-file-access': None,
+                        'no-stop-slow-scripts': None
+                    }
+                    
+                    pdfkit.from_string(html_string, temp_pdf.name, options=options)
                     
                     if os.path.exists(temp_docx.name): os.unlink(temp_docx.name)
                     return send_file(_get_buffer_and_cleanup(temp_pdf.name), as_attachment=True, download_name='Markdown_Export.pdf', mimetype='application/pdf')
+                
                 except Exception as e:
                     if os.path.exists(temp_pdf.name): os.unlink(temp_pdf.name)
                     if os.path.exists(temp_docx.name): os.unlink(temp_docx.name)
