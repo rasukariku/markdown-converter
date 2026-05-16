@@ -874,6 +874,7 @@ body.light-mode #rendered-output ::selection { background: #93c5fd; color: #1e3a
 
 #rendered-output mjx-container {
     color: var(--text-main) !important;
+    fill: currentColor !important;
     display: inline-block;
 }
 
