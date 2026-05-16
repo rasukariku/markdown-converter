@@ -1,12 +1,18 @@
 # Base image
 FROM python:3.10-slim
 
-# Install system dependencies for Pandoc and WeasyPrint (HTML to PDF)
+# Microsoft Fonts
+RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     pandoc \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libharfbuzz0b \
+    fontconfig \
+    ttf-mscorefonts-installer \
+    && fc-cache -f -v \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
