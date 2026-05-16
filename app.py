@@ -315,55 +315,48 @@ def convert():
                     pythoncom.CoUninitialize()
             else:
                 try:
-                    import pdfkit
+                    from playwright.sync_api import sync_playwright
+                    
                     temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
                     temp_pdf.close()
                     
                     extra_args = [
                         '--standalone', 
-                        '--mathjax=https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-AMS_HTML'
+                        '--mathjax=https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'
                     ]
                     html_string = pypandoc.convert_text(source_text_html, 'html', format=input_format, extra_args=extra_args)
                     
                     css_injection = '''
                     <style>
-                    @page { size: A4; margin: 2.54cm; }
-                    body { font-family: "Times New Roman", serif !important; font-size: 12pt !important; line-height: 1.5; text-align: justify; color: black; }
-                    h1, h2, h3, h4 { line-height: 1.2; margin-bottom: 8pt; text-align: left; font-family: "Times New Roman", serif !important; }
-                    p { margin-bottom: 8pt; margin-top: 0; }
-                    table { width: 100%; border-collapse: collapse; margin: 15pt 0; font-size: 12pt !important; page-break-inside: avoid; }
-                    th, td { border: 1pt solid black; padding: 6pt; text-align: left; vertical-align: top; }
+                    body { font-family: "Times New Roman", serif; font-size: 16px; line-height: 1.5; text-align: justify; color: black; }
+                    h1, h2, h3, h4 { line-height: 1.2; margin-bottom: 8px; text-align: left; font-family: "Times New Roman", serif; }
+                    p { margin-bottom: 10px; margin-top: 0; }
+                    table { width: 100%; border-collapse: collapse; margin: 15px 0; page-break-inside: avoid; }
+                    th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; }
                     th { font-weight: bold; background-color: #f3f4f6; }
-                    blockquote { margin: 10pt 20pt; padding-left: 10pt; border-left: 3pt solid #000; font-style: italic; page-break-inside: avoid; }
-                    hr { border: 0; border-top: 1pt solid #000; margin: 12pt 0; }
-                    pre, code { font-family: "Courier New", monospace !important; font-size: 10.5pt !important; page-break-inside: avoid; }
-                    pre { background: #f4f4f4; padding: 10pt; border: 1pt solid #ccc; white-space: pre-wrap; }
+                    blockquote { margin: 10px 20px; padding-left: 10px; border-left: 3px solid #000; font-style: italic; }
+                    hr { border: 0; border-top: 1px solid #000; margin: 16px 0; }
+                    pre, code { font-family: "Courier New", monospace; font-size: 14px; page-break-inside: avoid; }
+                    pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
                     
-                    .MathJax_Display {
-                        margin: 4pt 0 !important; 
-                        padding: 0 !important;
-                        text-align: left !important;
-                        page-break-inside: avoid !important;
-                    }
-                    .math { page-break-inside: avoid !important; }
+                    mjx-container { page-break-inside: avoid !important; margin: 6px 0 !important; }
                     </style>
                     '''
                     html_string = html_string.replace('</head>', f'{css_injection}</head>')
                     
-                    options = {
-                        'page-size': 'A4',
-                        'margin-top': '25.4mm',
-                        'margin-right': '25.4mm',
-                        'margin-bottom': '25.4mm',
-                        'margin-left': '25.4mm',
-                        'encoding': "UTF-8",
-                        'javascript-delay': '2000', 
-                        'enable-local-file-access': "",
-                        'disable-smart-shrinking': "",
-                        'zoom': '1.333'
-                    }
-                    
-                    pdfkit.from_string(html_string, temp_pdf.name, options=options)
+                    with sync_playwright() as p:
+                        browser = p.chromium.launch(headless=True)
+                        page = browser.new_page()
+                        
+                        page.set_content(html_string, wait_until='networkidle')
+                        
+                        page.pdf(
+                            path=temp_pdf.name,
+                            format='A4',
+                            margin={'top': '2.54cm', 'right': '2.54cm', 'bottom': '2.54cm', 'left': '2.54cm'},
+                            print_background=True
+                        )
+                        browser.close()
                     
                     if os.path.exists(temp_docx.name): os.unlink(temp_docx.name)
                     return send_file(_get_buffer_and_cleanup(temp_pdf.name), as_attachment=True, download_name='Markdown_Export.pdf', mimetype='application/pdf')
