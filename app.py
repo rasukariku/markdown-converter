@@ -315,30 +315,37 @@ def convert():
                     pythoncom.CoUninitialize()
             else:
                 try:
-                    import subprocess
-                    import shutil
-                    
+                    import weasyprint
                     temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
                     temp_pdf.close()
                     
-                    out_dir = os.path.dirname(temp_pdf.name)
+                    html_string = pypandoc.convert_text(
+                        source_text_html, 
+                        'html', 
+                        format=input_format, 
+                        extra_args=['--webtex=https://latex.codecogs.com/svg.image?']
+                    )
                     
-                    process = subprocess.run([
-                        'libreoffice', '--headless', '--convert-to', 'pdf',
-                        temp_docx.name, '--outdir', out_dir
-                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    
-                    base_name = os.path.splitext(os.path.basename(temp_docx.name))[0]
-                    expected_pdf_path = os.path.join(out_dir, f"{base_name}.pdf")
-                    
-                    if os.path.exists(expected_pdf_path):
-                        shutil.move(expected_pdf_path, temp_pdf.name)
-                    else:
-                        raise Exception(f"LibreOffice failed: {process.stderr.decode('utf-8')}")
+                    css_string = '''
+                    @page { size: A4; margin: 2.54cm; }
+                    body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.5; text-align: justify; }
+                    h1, h2, h3, h4 { line-height: 1.2; margin-bottom: 8pt; text-align: left; }
+                    p { margin-bottom: 8pt; margin-top: 0; }
+                    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                    th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; }
+                    th { font-weight: bold; background-color: #f3f4f6; }
+                    blockquote { margin: 10px 20px; padding-left: 10px; border-left: 3px solid #000; color: #333; font-style: italic; }
+                    hr { border: 0; border-top: 1.5pt solid #000; margin: 18pt 0; }
+                    pre, code { font-family: "Courier New", monospace; font-size: 10.5pt; }
+                    pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
+                    img { max-width: 100%; vertical-align: middle; } /* Jaga agar rumus SVG rata dengan teks */
+                    '''
+                    document_css = weasyprint.CSS(string=css_string)
+                    html_doc = weasyprint.HTML(string=html_string)
+                    html_doc.write_pdf(target=temp_pdf.name, stylesheets=[document_css])
                     
                     if os.path.exists(temp_docx.name): os.unlink(temp_docx.name)
                     return send_file(_get_buffer_and_cleanup(temp_pdf.name), as_attachment=True, download_name='Markdown_Export.pdf', mimetype='application/pdf')
-                
                 except Exception as e:
                     if os.path.exists(temp_pdf.name): os.unlink(temp_pdf.name)
                     if os.path.exists(temp_docx.name): os.unlink(temp_docx.name)

@@ -1,13 +1,15 @@
 # Base image
 FROM python:3.10-slim
 
-# Install system dependencies for Pandoc and LibreOffice (PDF Engine)
+# Install system dependencies for Pandoc and WeasyPrint (HTML to PDF)
 RUN apt-get update && apt-get install -y \
     pandoc \
-    libreoffice \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libharfbuzz0b \
     && rm -rf /var/lib/apt/lists/*
 
-# Set temporary working directory
+# Set working directory
 WORKDIR /app
 
 # Install Python dependencies
@@ -20,12 +22,11 @@ USER user
 ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH
 
-# Set final working directory to user home
 WORKDIR $HOME/app
 
-# Copy application files with proper permissions
+# Copy application files
 COPY --chown=user . $HOME/app
 
-# Run the application on port 7860 using Gunicorn
+# Run the application on port 7860
 EXPOSE 7860
 CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app"]
