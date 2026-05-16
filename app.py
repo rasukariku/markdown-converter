@@ -319,14 +319,12 @@ def convert():
                     temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
                     temp_pdf.close()
                     
-                    # KUNCI FIX: Kita gunakan MathJax v2.7 karena sangat stabil di dalam wkhtmltopdf
                     extra_args = [
                         '--standalone', 
                         '--mathjax=https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-AMS_HTML'
                     ]
                     html_string = pypandoc.convert_text(source_text_html, 'html', format=input_format, extra_args=extra_args)
                     
-                    # Suntikkan gaya CSS MS Word
                     css_injection = '''
                     <style>
                     @page { size: A4; margin: 2.54cm; }
@@ -344,7 +342,6 @@ def convert():
                     '''
                     html_string = html_string.replace('</head>', f'{css_injection}</head>')
                     
-                    # Konfigurasi Mesin WebKit PDF
                     options = {
                         'page-size': 'A4',
                         'margin-top': '25.4mm',
@@ -352,7 +349,7 @@ def convert():
                         'margin-bottom': '25.4mm',
                         'margin-left': '25.4mm',
                         'encoding': "UTF-8",
-                        'javascript-delay': '2000', # Tahan 2 detik agar animasi MathJax selesai merender rumus
+                        'javascript-delay': '2000',
                         'enable-local-file-access': None,
                         'no-stop-slow-scripts': None
                     }

@@ -1,14 +1,13 @@
 # Base image
-FROM python:3.10-slim
+FROM python:3.10-slim-bullseye
 
-# Unlock Debian Repositories for contrib & non-free
-RUN sed -i -e 's/Components: main/Components: main contrib non-free/g' /etc/apt/sources.list.d/debian.sources || \
-    sed -i -e 's/main/main contrib non-free/g' /etc/apt/sources.list
+# Unlock contrib and non-free repositories for Debian to get Microsoft Core Fonts
+RUN sed -i -e 's/main/main contrib non-free/g' /etc/apt/sources.list
 
-# Agree to Microsoft Core Fonts EULA
+# Agree to the EULA for Microsoft Core Fonts to avoid interactive prompts during installation
 RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections
 
-# Install system dependencies
+# install pandoc, wkhtmltopdf, and Microsoft Core Fonts for proper rendering in Word and PDF outputs
 RUN apt-get update && apt-get install -y \
     pandoc \
     wkhtmltopdf \
