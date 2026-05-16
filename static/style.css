@@ -890,29 +890,32 @@ body.light-mode #rendered-output ::selection { background: #93c5fd; color: #1e3a
     text-align: center;
 }
 
-/* Transparansi MathJax Background (Termasuk SVG Layer) */
 mjx-container[jax="CHTML"], 
 mjx-container[jax="SVG"],
 mjx-container svg {
     background-color: transparent !important;
 }
 
-/* Highlight Biru Transparan Khusus MathJax (Target spesifik SVG) */
-#rendered-output mjx-container::selection,
-#rendered-output mjx-container *::selection,
-#rendered-output mjx-container svg::selection {
+#rendered-output mjx-container::selection {
     background-color: rgba(59, 130, 246, 0.4) !important;
     color: inherit !important;
 }
 
-body.light-mode #rendered-output mjx-container::selection,
-body.light-mode #rendered-output mjx-container *::selection,
-body.light-mode #rendered-output mjx-container svg::selection {
+#rendered-output mjx-container *::selection {
+    background-color: transparent !important;
+    color: inherit !important;
+}
+
+body.light-mode #rendered-output mjx-container::selection {
     background-color: rgba(147, 197, 253, 0.5) !important;
     color: inherit !important;
 }
 
-/* Highlight Solid Khusus Tabel */
+body.light-mode #rendered-output mjx-container *::selection {
+    background-color: transparent !important;
+    color: inherit !important;
+}
+
 #rendered-output table::selection,
 #rendered-output td::selection,
 #rendered-output th::selection {
