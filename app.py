@@ -328,8 +328,16 @@ def convert():
                     
                     css_injection = '''
                     <style>
-                    @page { size: A4; }
-                    body { font-family: "Times New Roman", serif; font-size: 16px; line-height: 1.5; text-align: justify; color: black; }
+                    body { 
+                        max-width: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        font-family: "Times New Roman", serif; 
+                        font-size: 16px; 
+                        line-height: 1.5; 
+                        text-align: justify; 
+                        color: black; 
+                    }
                     h1, h2, h3, h4 { line-height: 1.2; margin-bottom: 8px; text-align: left; font-family: "Times New Roman", serif; }
                     p { margin-bottom: 10px; margin-top: 0; }
                     table { width: 100%; border-collapse: collapse; margin: 15px 0; page-break-inside: avoid; }

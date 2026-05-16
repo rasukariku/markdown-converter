@@ -896,26 +896,17 @@ mjx-container svg {
     background-color: transparent !important;
 }
 
-#rendered-output mjx-container::selection {
-    background-color: rgba(59, 130, 246, 0.4) !important;
-    color: inherit !important;
-}
-
+#rendered-output mjx-container::selection,
 #rendered-output mjx-container *::selection {
-    background-color: transparent !important;
-    color: inherit !important;
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
 }
 
-body.light-mode #rendered-output mjx-container::selection {
-    background-color: rgba(147, 197, 253, 0.5) !important;
-    color: inherit !important;
-}
-
+body.light-mode #rendered-output mjx-container::selection,
 body.light-mode #rendered-output mjx-container *::selection {
-    background-color: transparent !important;
-    color: inherit !important;
+    background-color: #93c5fd !important;
+    color: #1e3a8a !important;
 }
-
 #rendered-output table::selection,
 #rendered-output td::selection,
 #rendered-output th::selection {
@@ -937,15 +928,15 @@ body.light-mode #rendered-output th::selection {
     border-color: transparent !important;
 }
 
-/* =====================================================================
-   Force Highlight for contenteditable="false" (JS Triggered)
-   ===================================================================== */
+/* Force Highlight for contenteditable="false" (JS Triggered)*/
 .math-selected {
-    background-color: rgba(59, 130, 246, 0.4) !important;
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
     border-radius: 4px;
     transition: background-color 0.1s ease;
 }
 
 body.light-mode .math-selected {
-    background-color: rgba(147, 197, 253, 0.5) !important;
+    background-color: #93c5fd !important;
+    color: #1e3a8a !important;
 }
