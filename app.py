@@ -316,7 +316,7 @@ def convert():
                     html_string = pypandoc.convert_text(source_text_html, 'html', format=input_format)
                     document_css = weasyprint.CSS(string='@page { size: A4; margin: 2.54cm; } body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.5; } h1, h2, h3, h4 { line-height: 1.2; margin-bottom: 8px; } p { margin-bottom: 12px; } table { width: 100%; border-collapse: collapse; margin: 15px 0; } th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; } th { font-weight: bold; background-color: #f3f4f6; } blockquote { margin: 10px 20px; padding-left: 10px; border-left: 3px solid #000; color: #333; font-style: italic; } hr { border: 0; border-top: 1.5px solid #000; margin: 14px 0; } pre, code { font-family: "Courier New", monospace; font-size: 10pt; } pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }')
                     html_doc = weasyprint.HTML(string=html_string)
-                    html_doc.write_pdf(temp_pdf.name, stylesheets=[document_css])
+                    html_doc.write_pdf(target=temp_pdf.name, stylesheets=[document_css])
                     if os.path.exists(temp_docx.name): os.unlink(temp_docx.name)
                     return send_file(_get_buffer_and_cleanup(temp_pdf.name), as_attachment=True, download_name='Markdown_Export.pdf', mimetype='application/pdf')
                 except Exception as e:
@@ -335,4 +335,4 @@ def convert():
         return f"DOCX conversion error: {str(e)}", 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 7860)))
