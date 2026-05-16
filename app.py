@@ -331,13 +331,20 @@ def convert():
                     body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.5; text-align: justify; color: black; }
                     h1, h2, h3, h4 { line-height: 1.2; margin-bottom: 8pt; text-align: left; font-family: "Times New Roman", serif; }
                     p { margin-bottom: 8pt; margin-top: 0; }
-                    table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12pt; }
+                    table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12pt; page-break-inside: avoid; }
                     th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; }
                     th { font-weight: bold; background-color: #f3f4f6; }
-                    blockquote { margin: 10px 20px; padding-left: 10px; border-left: 3px solid #000; font-style: italic; }
+                    blockquote { margin: 10px 20px; padding-left: 10px; border-left: 3px solid #000; font-style: italic; page-break-inside: avoid; }
                     hr { border: 0; border-top: 1px solid #000; margin: 12pt 0; }
-                    pre, code { font-family: "Courier New", monospace; font-size: 10.5pt; }
+                    pre, code { font-family: "Courier New", monospace; font-size: 10.5pt; page-break-inside: avoid; }
                     pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
+                    
+                    .MathJax_Display {
+                        margin: 4pt 0 !important; 
+                        padding: 0 !important;
+                        text-align: left !important;
+                        page-break-inside: avoid; /* Matriks tetap tidak boleh terpotong */
+                    }
                     </style>
                     '''
                     html_string = html_string.replace('</head>', f'{css_injection}</head>')
@@ -349,9 +356,11 @@ def convert():
                         'margin-bottom': '25.4mm',
                         'margin-left': '25.4mm',
                         'encoding': "UTF-8",
-                        'javascript-delay': '2000',
+                        'javascript-delay': '2000', 
                         'enable-local-file-access': None,
-                        'no-stop-slow-scripts': None
+                        'no-stop-slow-scripts': None,
+                        'disable-smart-shrinking': None,
+                        'zoom': '1.33'
                     }
                     
                     pdfkit.from_string(html_string, temp_pdf.name, options=options)
@@ -363,7 +372,6 @@ def convert():
                     if os.path.exists(temp_pdf.name): os.unlink(temp_pdf.name)
                     if os.path.exists(temp_docx.name): os.unlink(temp_docx.name)
                     return f"Linux PDF Engine Error: {str(e)}", 500
-
         # =========================================================================
         # 7. DOCX OUTPUT
         # =========================================================================
