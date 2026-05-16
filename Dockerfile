@@ -1,7 +1,11 @@
 # Base image
 FROM python:3.10-slim
 
-# Microsoft Fonts
+# Unlocking Microsoft Core Fonts by adding contrib and non-free repositories
+RUN sed -i -e 's/Components: main/Components: main contrib non-free/g' /etc/apt/sources.list.d/debian.sources || \
+    sed -i -e 's/main/main contrib non-free/g' /etc/apt/sources.list
+
+# Agree to the EULA for Microsoft Core Fonts to allow installation without interactive prompts
 RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections
 
 # Install system dependencies
