@@ -328,25 +328,23 @@ def convert():
                     css_injection = '''
                     <style>
                     @page { size: A4; margin: 2.54cm; }
-                    body { font-family: "Times New Roman", serif !important; font-size: 16px !important; line-height: 1.5; text-align: justify; color: black; }
-                    h1, h2, h3, h4 { line-height: 1.2; margin-bottom: 8px; text-align: left; font-family: "Times New Roman", serif !important; }
-                    p { margin-bottom: 10px; margin-top: 0; }
-                    table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 16px !important; page-break-inside: avoid; }
-                    th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; }
+                    body { font-family: "Times New Roman", serif !important; font-size: 12pt !important; line-height: 1.5; text-align: justify; color: black; }
+                    h1, h2, h3, h4 { line-height: 1.2; margin-bottom: 8pt; text-align: left; font-family: "Times New Roman", serif !important; }
+                    p { margin-bottom: 8pt; margin-top: 0; }
+                    table { width: 100%; border-collapse: collapse; margin: 15pt 0; font-size: 12pt !important; page-break-inside: avoid; }
+                    th, td { border: 1pt solid black; padding: 6pt; text-align: left; vertical-align: top; }
                     th { font-weight: bold; background-color: #f3f4f6; }
-                    blockquote { margin: 10px 20px; padding-left: 10px; border-left: 3px solid #000; font-style: italic; page-break-inside: avoid; }
-                    hr { border: 0; border-top: 1px solid #000; margin: 16px 0; }
-                    pre, code { font-family: "Courier New", monospace !important; font-size: 14px !important; page-break-inside: avoid; }
-                    pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
+                    blockquote { margin: 10pt 20pt; padding-left: 10pt; border-left: 3pt solid #000; font-style: italic; page-break-inside: avoid; }
+                    hr { border: 0; border-top: 1pt solid #000; margin: 12pt 0; }
+                    pre, code { font-family: "Courier New", monospace !important; font-size: 10.5pt !important; page-break-inside: avoid; }
+                    pre { background: #f4f4f4; padding: 10pt; border: 1pt solid #ccc; white-space: pre-wrap; }
                     
-                    /* Kunci MathJax agar tidak renggang dan tidak terpotong */
                     .MathJax_Display {
-                        margin: 6px 0 !important; 
+                        margin: 4pt 0 !important; 
                         padding: 0 !important;
                         text-align: left !important;
                         page-break-inside: avoid !important;
                     }
-                    /* Pelindung ekstra untuk rumus panjang */
                     .math { page-break-inside: avoid !important; }
                     </style>
                     '''
@@ -362,8 +360,7 @@ def convert():
                         'javascript-delay': '2000', 
                         'enable-local-file-access': "",
                         'disable-smart-shrinking': "",
-                        'dpi': '96',
-                        'zoom': '1.0'
+                        'zoom': '1.333'
                     }
                     
                     pdfkit.from_string(html_string, temp_pdf.name, options=options)
