@@ -1142,29 +1142,38 @@ renderedOutput.addEventListener('copy', function(e) {
 // Visual Auto-Save Indicator
 // =====================================================================
 let typingTimer;
+let hideTimer;
 const saveStatus = document.getElementById('auto-save-status');
+const mainEditor = document.getElementById('rendered-output');
 
 function triggerSavingUI() {
-    if (!saveStatus) return;
+    if (!saveStatus) return; 
+
+    if (mainEditor.innerText.trim() === '' && !mainEditor.querySelector('img, table, mjx-container, hr')) {
+        saveStatus.style.display = 'none';
+        return;
+    }
+    
+    clearTimeout(hideTimer);
     
     saveStatus.style.display = 'flex'; 
-    
-    saveStatus.style.color = '#f59e0b'; 
+    saveStatus.style.color = '#f59e0b';
     saveStatus.innerHTML = '<span style="font-size:12px">⏳</span> Saving...';
     
     clearTimeout(typingTimer);
     
     typingTimer = setTimeout(() => {
-        saveStatus.style.color = '#10b981'; 
+        saveStatus.style.color = '#10b981'; // Hijau
         saveStatus.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Saved';
         
-        setTimeout(() => {
-            saveStatus.style.color = 'var(--text-muted)';
-        }, 2000);
+        hideTimer = setTimeout(() => {
+            saveStatus.style.display = 'none';
+        }, 2500);
+        
     }, 1000);
 }
 
-document.getElementById('rendered-output').addEventListener('input', triggerSavingUI);
+mainEditor.addEventListener('input', triggerSavingUI);
 document.getElementById('raw-markdown').addEventListener('input', triggerSavingUI);
 
 // =====================================================================
