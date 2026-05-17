@@ -484,27 +484,19 @@ renderedOutput.addEventListener('input', syncRenderedToRaw);
 
 renderedOutput.addEventListener('paste', function(e) {
     e.preventDefault();
+    e.stopImmediatePropagation();
+
     let clipboardData = (e.originalEvent || e).clipboardData;
-    let htmlData = clipboardData.getData('text/html');
-    let plainData = clipboardData.getData('text/plain');
+    let plainData = clipboardData.getData('text/plain'); //
 
-    let rawMarkdown = "";
-    const hasBlockElements = /<(p|div|br|li|h[1-6]|table|pre|blockquote|span|font|hr)[^>]*>/i.test(htmlData);
-
-    if (htmlData && hasBlockElements) { 
-        rawMarkdown = standardTurndown.turndown(htmlData); 
-    } else { 
-        rawMarkdown = plainData; 
-    }
-
-    let processedText = rawMarkdown.replace(/\\\([\s\S]*?\\\)/g, function(m) { return '$' + m.slice(2, -2).trim() + '$'; });
+    let processedText = plainData.replace(/\\\([\s\S]*?\\\)/g, function(m) { return '$' + m.slice(2, -2).trim() + '$'; });
     processedText = processedText.replace(/\\\[[\s\S]*?\\\]/g, function(m) { return '$$' + m.slice(2, -2).trim() + '$$'; });
 
     let parsedHTML = marked.parse(processedText.replace(/\\\\/g, '\\\\\\\\'));
+    
     document.execCommand('insertHTML', false, parsedHTML);
 
     setTimeout(() => {
-        // Strip all conflicting inline styles completely, let CSS handle layout
         renderedOutput.querySelectorAll('*').forEach(el => {
             if(el.style.margin) el.style.margin = "";
             if(el.style.padding) el.style.padding = "";
@@ -1146,20 +1138,32 @@ renderedOutput.addEventListener('copy', function(e) {
     e.clipboardData.setData('text/plain', tempDiv.innerText);
 });
 
-/* =====================================================================
-   Paste as Plain Text (AI Copy-Paste Interceptor)
-   ===================================================================== */
-const contentEditor = document.getElementById('rendered-output'); 
+// =====================================================================
+// Visual Auto-Save Indicator
+// =====================================================================
+let typingTimer;
+const saveStatus = document.getElementById('auto-save-status');
 
-if (contentEditor) {
-    contentEditor.addEventListener('paste', function(e) {
-        e.preventDefault();
-
-        const plainText = (e.clipboardData || window.clipboardData).getData('text/plain');
-
-        document.execCommand('insertText', false, plainText);
-    });
+function triggerSavingUI() {
+    if (!saveStatus) return;
+    
+    saveStatus.style.color = '#f59e0b'; 
+    saveStatus.innerHTML = '<span style="font-size:12px">⏳</span> Saving...';
+    
+    clearTimeout(typingTimer);
+    
+    typingTimer = setTimeout(() => {
+        saveStatus.style.color = '#10b981'; 
+        saveStatus.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Saved';
+        
+        setTimeout(() => {
+            saveStatus.style.color = 'var(--text-muted)';
+        }, 2000);
+    }, 1000);
 }
+
+document.getElementById('rendered-output').addEventListener('input', triggerSavingUI);
+document.getElementById('raw-markdown').addEventListener('input', triggerSavingUI);
 
 // =====================================================================
 // Initialization
