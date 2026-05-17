@@ -928,3 +928,21 @@ body.light-mode .math-selected {
     color: #1e3a8a !important;
     fill: #1e3a8a !important;
 }
+
+/* =====================================================================
+   Override Pasted Rich Text Colors
+   ===================================================================== */
+#rendered-output p, 
+#rendered-output span:not([class^="mjx"]), 
+#rendered-output div,
+#rendered-output font,
+#rendered-output li {
+    color: var(--text-main) !important;
+    background-color: transparent !important;
+}
+
+#rendered-output blockquote,
+#rendered-output blockquote p,
+#rendered-output blockquote span {
+    color: var(--text-muted) !important;
+}

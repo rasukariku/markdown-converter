@@ -1146,6 +1146,21 @@ renderedOutput.addEventListener('copy', function(e) {
     e.clipboardData.setData('text/plain', tempDiv.innerText);
 });
 
+/* =====================================================================
+   Paste as Plain Text (AI Copy-Paste Interceptor)
+   ===================================================================== */
+const contentEditor = document.getElementById('rendered-output'); 
+
+if (contentEditor) {
+    contentEditor.addEventListener('paste', function(e) {
+        e.preventDefault();
+
+        const plainText = (e.clipboardData || window.clipboardData).getData('text/plain');
+
+        document.execCommand('insertText', false, plainText);
+    });
+}
+
 // =====================================================================
 // Initialization
 // =====================================================================
