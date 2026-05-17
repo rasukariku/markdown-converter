@@ -854,13 +854,19 @@ body.is-fullscreen .fab-container, body.is-fullscreen .top-toggles {
 /* =====================================================================
    Solid Block UI, Text Selection & MathJax Visibility
    ===================================================================== */
-::selection { background: #3b82f6; color: #ffffff; }
-body.light-mode ::selection { background: #93c5fd; color: #1e3a8a; }
+::selection, *::selection { 
+    background-color: #3b82f6 !important; 
+    color: #ffffff !important; 
+    fill: #ffffff !important;
+}
 
-#rendered-output ::selection { background: #3b82f6; color: #ffffff; }
-body.light-mode #rendered-output ::selection { background: #93c5fd; color: #1e3a8a; }
+body.light-mode ::selection, body.light-mode *::selection { 
+    background-color: #93c5fd !important; 
+    color: #1e3a8a !important; 
+    fill: #1e3a8a !important; 
+}
 
-/* Force Selectability & Base Styles */
+/* 2. Force Selectability & Base Styles */
 #rendered-output mjx-container,
 #rendered-output mjx-container *,
 #rendered-output table {
@@ -898,36 +904,7 @@ body.light-mode #rendered-output ::selection { background: #93c5fd; color: #1e3a
 mjx-container[jax="CHTML"], 
 mjx-container[jax="SVG"],
 mjx-container svg {
-    background-color: transparent !important;
-}
-
-/* =====================================================================
-   MathJax Selection
-   ===================================================================== */
-#rendered-output mjx-container::selection,
-#rendered-output mjx-container *::selection {
-    background-color: #3b82f6 !important;
-    color: #ffffff !important;
-}
-
-body.light-mode #rendered-output mjx-container::selection,
-body.light-mode #rendered-output mjx-container *::selection {
-    background-color: #93c5fd !important;
-    color: #1e3a8a !important;
-}
-
-#rendered-output table::selection,
-#rendered-output td::selection,
-#rendered-output th::selection {
-    background: #3b82f6 !important;
-    color: #ffffff !important;
-}
-
-body.light-mode #rendered-output table::selection,
-body.light-mode #rendered-output td::selection,
-body.light-mode #rendered-output th::selection {
-    background: #93c5fd !important;
-    color: #1e3a8a !important;
+    background-color: transparent;
 }
 
 /* Flash animation on copy */
@@ -937,10 +914,11 @@ body.light-mode #rendered-output th::selection {
     border-color: transparent !important;
 }
 
-/* Force Highlight for contenteditable="false" (JS Triggered)*/
+/* Force Highlight for contenteditable="false" (JS Triggered) */
 .math-selected {
     background-color: #3b82f6 !important;
     color: #ffffff !important;
+    fill: #ffffff !important;
     border-radius: 4px;
     transition: background-color 0.1s ease;
 }
@@ -948,4 +926,5 @@ body.light-mode #rendered-output th::selection {
 body.light-mode .math-selected {
     background-color: #93c5fd !important;
     color: #1e3a8a !important;
+    fill: #1e3a8a !important;
 }
