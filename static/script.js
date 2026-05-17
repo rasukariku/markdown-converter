@@ -1147,6 +1147,8 @@ const saveStatus = document.getElementById('auto-save-status');
 function triggerSavingUI() {
     if (!saveStatus) return;
     
+    saveStatus.style.display = 'flex'; 
+    
     saveStatus.style.color = '#f59e0b'; 
     saveStatus.innerHTML = '<span style="font-size:12px">⏳</span> Saving...';
     
