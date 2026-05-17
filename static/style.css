@@ -862,14 +862,19 @@ body.light-mode #rendered-output ::selection { background: #93c5fd; color: #1e3a
 
 /* Force Selectability & Base Styles */
 #rendered-output mjx-container,
+#rendered-output mjx-container *,
+#rendered-output table {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    cursor: text;
+}
+
+#rendered-output mjx-container,
 #rendered-output table {
     position: relative;
-    cursor: text;
     border: 1px solid transparent;
     border-radius: 4px;
     transition: border-color 0.2s ease, background-color 0.2s ease;
-    user-select: text !important;
-    -webkit-user-select: text !important;
 }
 
 #rendered-output mjx-container {
@@ -896,6 +901,9 @@ mjx-container svg {
     background-color: transparent !important;
 }
 
+/* =====================================================================
+   MathJax Selection
+   ===================================================================== */
 #rendered-output mjx-container::selection,
 #rendered-output mjx-container *::selection {
     background-color: #3b82f6 !important;
@@ -907,6 +915,7 @@ body.light-mode #rendered-output mjx-container *::selection {
     background-color: #93c5fd !important;
     color: #1e3a8a !important;
 }
+
 #rendered-output table::selection,
 #rendered-output td::selection,
 #rendered-output th::selection {
