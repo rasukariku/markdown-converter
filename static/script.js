@@ -482,38 +482,48 @@ function syncRenderedToRaw() {
 rawMarkdownInput.addEventListener('input', syncRawToRendered);
 renderedOutput.addEventListener('input', syncRenderedToRaw);
 
+// =====================================================================
+// AI SANITIZER (Global Filter)
+// =====================================================================
+function sanitizeAIText(plainData) {
+    plainData = plainData.replace(/[\u00A0\u202F\u200B-\u200D\uFEFF]/g, ' ');
+    plainData = plainData.replace(/\r\n/g, '\n');
+    plainData = plainData.replace(/\r/g, '\n');
+    
+    plainData = plainData.replace(/([^\n])[ \t]*(\*{3,}|-{3,}|_{3,})[ \t]*$/gm, '$1\n\n$2\n\n');
+    plainData = plainData.replace(/^[ \t]*(\*{3,}|-{3,}|_{3,})[ \t]*([^\n])/gm, '\n\n$1\n\n$2');
+    plainData = plainData.replace(/([^ \n])[ \t]{2,}/g, '$1 ');
+    plainData = plainData.replace(/^[ \t]*(\*{3,}|-{3,}|_{3,})[ \t]*$/gm, '\n\n---\n\n');
+
+    let processedText = plainData.replace(/\\\([\s\S]*?\\\)/g, function(m) { return '$' + m.slice(2, -2).trim() + '$'; });
+    processedText = processedText.replace(/\\\[[\s\S]*?\\\]/g, function(m) { return '$$' + m.slice(2, -2).trim() + '$$'; });
+    
+    processedText = processedText.replace(/\*\*(\$\$?)([^\$\n]+)\1\*\*/g, '$1\\mathbf{$2}$1');
+
+    processedText = processedText.replace(/(\$\$?)([^\$]+)\1/g, function(match, dollar, mathContent) {
+        let cleanMath = mathContent;
+        cleanMath = cleanMath.replace(/\*\*[ \t]*([^\*\n]+)[ \t]*\*\*/g, '\\mathbf{$1}');
+        cleanMath = cleanMath.replace(/([-]?\d+)[ \t]*\/[ \t]*([-]?\d+)/g, '\\frac{$1}{$2}');
+        cleanMath = cleanMath.replace(/[ \t]{2,}/g, ' ');                      
+        return dollar + cleanMath + dollar;
+    });
+
+    processedText = processedText.replace(/\n{3,}/g, '\n\n');
+
+    return processedText;
+}
+
+// =====================================================================
+// PASTE INTERCEPTOR 1: Main Visual Editor
+// =====================================================================
 renderedOutput.addEventListener('paste', function(e) {
     e.preventDefault();
     e.stopImmediatePropagation();
 
     let clipboardData = (e.originalEvent || e).clipboardData;
     let plainData = clipboardData.getData('text/plain');
-
-    // Stage 1: Text Sanitizer (Remove ghost chars, trailing spaces, double spaces, excessive newlines)
-    plainData = plainData.replace(/[\u200B-\u200D\uFEFF]/g, '');
-    plainData = plainData.replace(/[ \t]+$/gm, '');
-    plainData = plainData.replace(/([^ \n])[ \t]{2,}/g, '$1 ');
-    plainData = plainData.replace(/\n{3,}/g, '\n\n');
-
-    // Stage 2: Math Sanitizer & Conversion
-    let processedText = plainData.replace(/\\\([\s\S]*?\\\)/g, function(m) { return '$' + m.slice(2, -2).trim() + '$'; });
-    processedText = processedText.replace(/\\\[[\s\S]*?\\\]/g, function(m) { return '$$' + m.slice(2, -2).trim() + '$$'; });
     
-    // Merge separated equals sign
-    processedText = processedText.replace(/=\s*\$([^\$]+)\$/g, '$=$1$');
-    
-    // Convert markdown bold wrapper to math bold
-    processedText = processedText.replace(/\*\*(\$\$?)([^\$]+)\1\*\*/g, '$1\\mathbf{$2}$1');
-
-    // Deep math formatting (Fractions, inner bold, inner spaces)
-    processedText = processedText.replace(/(\$\$?)([^\$]+)\1/g, function(match, dollar, mathContent) {
-        let cleanMath = mathContent;
-        cleanMath = cleanMath.replace(/\*\*([^\*]+)\*\*/g, '\\mathbf{$1}'); 
-        cleanMath = cleanMath.replace(/(\d+)\/(\d+)/g, '\\frac{$1}{$2}');   
-        cleanMath = cleanMath.replace(/\s{2,}/g, ' ');                      
-        return dollar + cleanMath + dollar;
-    });
-
+    let processedText = sanitizeAIText(plainData);
     let parsedHTML = marked.parse(processedText.replace(/\\\\/g, '\\\\\\\\'));
     
     document.execCommand('insertHTML', false, parsedHTML);
@@ -533,6 +543,26 @@ renderedOutput.addEventListener('paste', function(e) {
             syncRenderedToRaw(); 
         });
     }, 50);
+});
+
+// =====================================================================
+// PASTE INTERCEPTOR 2: Raw Markdown Modal
+// =====================================================================
+rawMarkdownInput.addEventListener('paste', function(e) {
+    e.preventDefault();
+    
+    let clipboardData = (e.originalEvent || e).clipboardData;
+    let plainData = clipboardData.getData('text/plain');
+    let processedText = sanitizeAIText(plainData);
+    
+    // Inject cleaned text at cursor position
+    let start = this.selectionStart;
+    let end = this.selectionEnd;
+    this.value = this.value.substring(0, start) + processedText + this.value.substring(end);
+    this.selectionStart = this.selectionEnd = start + processedText.length;
+    
+    // Sync to main editor immediately
+    syncRawToRendered(); 
 });
 
 document.getElementById("btn-open-raw").onclick = () => { 
