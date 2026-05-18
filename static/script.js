@@ -487,10 +487,32 @@ renderedOutput.addEventListener('paste', function(e) {
     e.stopImmediatePropagation();
 
     let clipboardData = (e.originalEvent || e).clipboardData;
-    let plainData = clipboardData.getData('text/plain'); //
+    let plainData = clipboardData.getData('text/plain');
 
+    // Stage 1: Text Sanitizer (Remove ghost chars, trailing spaces, double spaces, excessive newlines)
+    plainData = plainData.replace(/[\u200B-\u200D\uFEFF]/g, '');
+    plainData = plainData.replace(/[ \t]+$/gm, '');
+    plainData = plainData.replace(/([^ \n])[ \t]{2,}/g, '$1 ');
+    plainData = plainData.replace(/\n{3,}/g, '\n\n');
+
+    // Stage 2: Math Sanitizer & Conversion
     let processedText = plainData.replace(/\\\([\s\S]*?\\\)/g, function(m) { return '$' + m.slice(2, -2).trim() + '$'; });
     processedText = processedText.replace(/\\\[[\s\S]*?\\\]/g, function(m) { return '$$' + m.slice(2, -2).trim() + '$$'; });
+    
+    // Merge separated equals sign
+    processedText = processedText.replace(/=\s*\$([^\$]+)\$/g, '$=$1$');
+    
+    // Convert markdown bold wrapper to math bold
+    processedText = processedText.replace(/\*\*(\$\$?)([^\$]+)\1\*\*/g, '$1\\mathbf{$2}$1');
+
+    // Deep math formatting (Fractions, inner bold, inner spaces)
+    processedText = processedText.replace(/(\$\$?)([^\$]+)\1/g, function(match, dollar, mathContent) {
+        let cleanMath = mathContent;
+        cleanMath = cleanMath.replace(/\*\*([^\*]+)\*\*/g, '\\mathbf{$1}'); 
+        cleanMath = cleanMath.replace(/(\d+)\/(\d+)/g, '\\frac{$1}{$2}');   
+        cleanMath = cleanMath.replace(/\s{2,}/g, ' ');                      
+        return dollar + cleanMath + dollar;
+    });
 
     let parsedHTML = marked.parse(processedText.replace(/\\\\/g, '\\\\\\\\'));
     
