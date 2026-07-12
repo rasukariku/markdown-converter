@@ -61,6 +61,12 @@ coverage.xml
 *.log
 
 # =====================================================================
+# Build & Bundle Scripts
+# =====================================================================
+bundle.py
+project_bundle.txt
+
+# =====================================================================
 # App-Specific / Local Test Artifacts
 # =====================================================================
 # Ignore generated export files strictly in the root directory
