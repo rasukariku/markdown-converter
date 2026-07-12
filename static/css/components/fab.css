@@ -1,0 +1,104 @@
+/* =====================================================================
+FAB Menu (Download)
+===================================================================== */
+.fab-container {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    z-index: 9000;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    user-select: none;
+}
+
+.fab-container:active {
+    cursor: grabbing;
+}
+
+.fab-main {
+    position: absolute;
+    z-index: 2;
+    width: 56px;
+    height: 56px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+    /* Added explicit 'ease' timing function for deterministic rendering */
+    transition: transform 0.3s ease; 
+}
+
+.fab-main:hover {
+    transform: scale(1.05);
+}
+
+.fab-menu {
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    /* Optimized transition: restrict to opacity and transform to prevent layout thrashing */
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fab-menu.open-up {
+    bottom: 65px;
+    flex-direction: column;
+    transform: translateY(20px);
+}
+
+.fab-menu.open-down {
+    top: 65px;
+    flex-direction: column-reverse;
+    transform: translateY(-20px);
+}
+
+/* Consolidated active state to reduce CSSOM duplication */
+.fab-menu.open-up.active,
+.fab-menu.open-down.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.fab-item {
+    width: 100px;
+    padding: 14px 0;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: filter 0.2s ease;
+}
+
+.fab-item:hover {
+    filter: brightness(1.2);
+}
+
+.btn-docx {
+    background-color: #3b82f6;
+}
+
+.btn-html {
+    background-color: #555555;
+}
+
+.btn-pdf {
+    background-color: #d32f2f;
+}

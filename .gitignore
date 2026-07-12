@@ -2,11 +2,14 @@
 # Python & Flask Core
 # =====================================================================
 __pycache__/
-*.py[codz]
+*.py[cod]
 *$py.class
 *.so
+*.pyd
+.Python
 instance/
 .webassets-cache
+flask_session/
 
 # =====================================================================
 # Virtual Environments & Secrets
@@ -27,22 +30,41 @@ dist/
 wheels/
 *.egg
 *.egg-info/
+.eggs/
 
 # =====================================================================
 # IDE, Editor & System Files
 # =====================================================================
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 tempCodeRunnerFile.py
 .DS_Store
 Thumbs.db
 ehthumbs.db
 
 # =====================================================================
+# Testing, Logging & Coverage
+# =====================================================================
+.pytest_cache/
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# =====================================================================
 # App-Specific / Local Test Artifacts
 # =====================================================================
-Markdown_Export.pdf
-Markdown_Export.docx
-Markdown_Export.html
-*.pdf
-*.docx
+# Ignore generated export files strictly in the root directory
+# to prevent ignoring legitimate documentation in subdirectories.
+/Markdown_Export.pdf
+/Markdown_Export.docx
+/Markdown_Export.html

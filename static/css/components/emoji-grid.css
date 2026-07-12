@@ -1,0 +1,59 @@
+/* =====================================================================
+Emoji Grid
+===================================================================== */
+.emoji-grid-container {
+    max-height: 350px;
+    padding-right: 5px;
+    overflow-y: auto;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 8px;
+}
+
+.emoji-btn {
+    /* Box Model */
+    padding: 6px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    
+    /* Visuals */
+    background-color: transparent;
+    
+    /* Typography */
+    font-size: 24px;
+    text-align: center;
+    
+    /* Interaction */
+    cursor: pointer;
+    user-select: none;
+    
+    /* Transitions: Use background-color instead of background to prevent 
+       unnecessary composite layer promotions. Added explicit 'ease' timing. */
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.emoji-btn:hover {
+    transform: scale(1.2);
+    background-color: var(--bg-toolbar);
+    border-color: var(--border-color);
+}
+
+.emoji-category-title {
+    /* Box Model */
+    margin-top: 15px;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border-color);
+    
+    /* Typography */
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #3b82f6;
+    
+    /* Grid Layout */
+    grid-column: 1 / -1;
+}

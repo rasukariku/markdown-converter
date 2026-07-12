@@ -1,0 +1,28 @@
+/* =====================================================================
+Override Pasted Rich Text Colors
+===================================================================== */
+
+/* 
+ * Force standard text colors on pasted rich text elements.
+ * !important is strictly required here to override inline styles 
+ * injected by external rich-text editors (e.g., MS Word, Google Docs).
+ */
+#rendered-output p,
+#rendered-output div,
+#rendered-output font,
+#rendered-output li,
+#rendered-output span:not([class^="mjx"]) {
+    /* Visuals */
+    color: var(--text-main) !important;
+    background-color: transparent !important;
+}
+
+/* 
+ * Override blockquote text colors to maintain visual hierarchy.
+ */
+#rendered-output blockquote,
+#rendered-output blockquote p,
+#rendered-output blockquote span {
+    /* Visuals */
+    color: var(--text-muted) !important;
+}

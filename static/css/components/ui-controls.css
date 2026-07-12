@@ -1,0 +1,30 @@
+/* =====================================================================
+UI Controls & Toggles
+===================================================================== */
+.top-toggles {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9000;
+    display: flex;
+    gap: 10px;
+}
+
+.toggle-btn {
+    /* Box Model */
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    
+    /* Visuals */
+    background-color: var(--bg-toolbar);
+    color: var(--text-main);
+    
+    /* Typography */
+    font-family: 'Poppins', sans-serif;
+    font-weight: bold;
+    
+    /* Interaction */
+    cursor: pointer;
+    user-select: none;
+}

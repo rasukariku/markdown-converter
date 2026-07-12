@@ -1,0 +1,102 @@
+/* =====================================================================
+Header
+===================================================================== */
+.header-container {
+    /* Typography */
+    text-align: center;
+    
+    /* Box Model */
+    margin-bottom: 35px;
+}
+
+.rgb-animate {
+    /* Visuals (Text Gradient) */
+    background: linear-gradient(90deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    
+    /* Animation */
+    animation: rgb-flow 3s linear infinite;
+}
+
+body.light-mode .rgb-animate {
+    /* Visuals (Text Gradient) */
+    background: linear-gradient(90deg, #d32f2f, #e65100, #0288d1, #2e7d32, #6a1b9a, #c2185b, #d32f2f);
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    
+    /* Animation */
+    animation: rgb-flow 3s linear infinite;
+}
+
+@keyframes rgb-flow {
+    to { background-position: 200% center; }
+}
+
+.title-wrapper {
+    /* Typography */
+    font-family: 'Press Start 2P', cursive;
+    font-size: 28px;
+    line-height: 1.5;
+    
+    /* Box Model */
+    margin-bottom: 15px;
+    
+    /* Layout */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 45px;
+}
+
+.cursor {
+    /* Layout */
+    display: inline-block;
+    
+    /* Box Model */
+    width: 4px;
+    height: 28px;
+    margin-left: 8px;
+    
+    /* Visuals */
+    background-color: var(--text-main);
+    
+    /* Animation */
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+.subtitle {
+    /* Typography */
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    
+    /* Box Model */
+    margin-top: 5px;
+    
+    /* Visuals */
+    color: var(--text-muted);
+}
+
+.format-cycle {
+    /* Layout */
+    display: inline-block;
+    text-align: center;
+    
+    /* Typography */
+    font-weight: bold;
+    letter-spacing: normal !important;
+    
+    /* Transitions: Added explicit 'ease' timing function for deterministic rendering */
+    transition: opacity 0.3s ease;
+}

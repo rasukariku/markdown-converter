@@ -1,0 +1,173 @@
+/* =====================================================================
+Editor Container & Toolbar
+===================================================================== */
+.editor-container {
+    /* Positioning */
+    position: relative;
+    
+    /* Box Model */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    
+    /* Visuals */
+    background-color: var(--bg-container);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    
+    /* Transitions: Added explicit 'ease' timing function */
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.toolbar {
+    /* Positioning */
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    
+    /* Layout */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    
+    /* Box Model */
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color);
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    
+    /* Visuals */
+    background-color: var(--bg-toolbar);
+    
+    /* Transitions: Added explicit 'ease' timing function */
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.tool-hidden {
+    display: none !important;
+}
+
+.toolbar.expanded .tool-hidden {
+    display: flex !important;
+}
+
+.toolbar.expanded .divider.tool-hidden {
+    display: block !important;
+}
+
+.divider {
+    /* Box Model */
+    width: 1px;
+    height: 24px;
+    margin: 0 5px;
+    
+    /* Visuals */
+    background-color: var(--border-color);
+}
+
+.btn-red, .btn-blue, .tool-btn {
+    /* Box Model */
+    padding: 5px 8px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Visuals */
+    background-color: transparent;
+    
+    /* Interaction */
+    cursor: pointer;
+    user-select: none;
+    
+    /* Transitions: Added explicit 'ease' timing function */
+    transition: background-color 0.2s ease;
+}
+
+.btn-red {
+    color: #ff4d4d;
+    border-color: #ff4d4d;
+}
+
+.btn-red:hover {
+    background-color: rgba(255, 77, 77, 0.1);
+}
+
+.btn-blue {
+    color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.btn-blue:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.tool-btn {
+    /* Box Model */
+    padding: 6px 10px;
+    border: none;
+    
+    /* Typography */
+    font-size: 16px;
+    color: var(--text-muted);
+}
+
+.tool-btn:hover {
+    background-color: var(--btn-tool-hover);
+    color: var(--text-main);
+}
+
+.tool-btn svg {
+    /* Box Model */
+    width: 16px;
+    height: 16px;
+    
+    /* Visuals */
+    fill: currentColor;
+}
+
+.tool-btn.bold {
+    /* Typography */
+    font-family: serif;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.tool-btn.italic {
+    /* Typography */
+    font-family: serif;
+    font-size: 18px;
+    font-style: italic;
+}
+
+.tool-btn.active {
+    /* Visuals */
+    background-color: var(--border-color);
+    color: var(--text-main);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.tool-select {
+    /* Box Model */
+    padding: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    
+    /* Typography */
+    font-family: 'Poppins', sans-serif;
+    font-size: 13px;
+    color: var(--text-main);
+    
+    /* Visuals: Changed 'background' to 'background-color' for performance */
+    background-color: var(--bg-main);
+    
+    /* Interaction */
+    cursor: pointer;
+}
+
+.tool-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+}

@@ -1,0 +1,151 @@
+/* =====================================================================
+Rendered Output Area
+===================================================================== */
+#rendered-output {
+    /* Box Model */
+    min-height: 400px;
+    padding: 25px;
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+    
+    /* Typography */
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-main);
+    
+    /* Visuals */
+    background-color: var(--bg-container);
+    
+    /* Layout */
+    overflow-y: auto;
+    
+    /* Transitions: Added explicit 'ease' timing function for deterministic rendering */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#rendered-output:focus {
+    /* Interaction */
+    outline: none;
+}
+
+#rendered-output:empty::before {
+    /* Content */
+    content: attr(data-placeholder);
+    
+    /* Typography */
+    color: var(--text-muted);
+    
+    /* Visuals */
+    opacity: 0.5;
+    
+    /* Interaction */
+    pointer-events: none;
+    cursor: text;
+}
+
+/* HR Styles */
+#rendered-output hr {
+    /* Box Model */
+    border: 0;
+    border-top: 2px solid var(--border-color);
+    margin: 20px 0;
+    
+    /* Print Layout */
+    page-break-inside: avoid;
+}
+
+body.light-mode #rendered-output hr {
+    /* Visuals */
+    border-top-color: #d0d7de;
+}
+
+/* Blockquote */
+#rendered-output blockquote {
+    /* Box Model */
+    border-left: 4px solid var(--border-color);
+    padding-left: 16px;
+    margin: 16px 0;
+    
+    /* Typography */
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Code Blocks */
+#rendered-output pre {
+    /* Box Model */
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    
+    /* Typography */
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    
+    /* Visuals */
+    background-color: var(--bg-toolbar);
+    
+    /* Layout */
+    overflow-x: auto;
+}
+
+#rendered-output code {
+    /* Box Model */
+    padding: 2px 6px;
+    border-radius: 4px;
+    
+    /* Typography */
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    
+    /* Visuals */
+    /* Fixed syntax: added spaces after commas in rgba() */
+    background-color: rgba(128, 128, 128, 0.15); 
+}
+
+#rendered-output pre code {
+    /* Visuals -> Box Model Reset */
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* Tables */
+#rendered-output table {
+    /* Box Model */
+    margin: 16px 0;
+    
+    /* Layout */
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    
+    /* Visuals */
+    background-color: var(--bg-container);
+    color: var(--text-main);
+}
+
+#rendered-output th, 
+#rendered-output td {
+    /* Box Model */
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    min-width: 40px;
+    
+    /* Layout */
+    position: relative;
+    text-align: left;
+    vertical-align: top;
+    resize: horizontal;
+    overflow: hidden;
+    word-wrap: break-word;
+}
+
+#rendered-output th {
+    /* Visuals */
+    /* Fixed syntax: added spaces after commas in rgba() */
+    background-color: rgba(128, 128, 128, 0.1); 
+    
+    /* Typography */
+    font-weight: bold;
+}

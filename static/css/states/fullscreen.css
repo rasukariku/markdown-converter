@@ -1,0 +1,41 @@
+/* =====================================================================
+Fullscreen Mode
+===================================================================== */
+.editor-container.fullscreen {
+    /* Positioning */
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    
+    /* Box Model & Sizing */
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    border-radius: 0;
+    
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-container.fullscreen #rendered-output {
+    /* Layout */
+    flex-grow: 1;
+    
+    /* Box Model */
+    max-height: none;
+    border-radius: 0;
+}
+
+/* 
+ * Force hide floating UI elements during fullscreen mode.
+ * !important is strictly required here to override inline display styles 
+ * applied by the draggable FAB and toggle scripts.
+ */
+body.is-fullscreen .fab-container,
+body.is-fullscreen .top-toggles {
+    /* Layout */
+    display: none !important;
+}

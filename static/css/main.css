@@ -1,0 +1,42 @@
+/* =====================================================================
+ * CSS Entry Point
+ * Orchestrates all modular stylesheets.
+ *
+ * PERFORMANCE TRADEOFF:
+ * Using @import causes browsers to download stylesheets sequentially 
+ * (waterfall effect). For production deployment, it is strictly recommended 
+ * to either concatenate these files via a build tool (e.g., Vite, Webpack) 
+ * or replace this single entry point with individual <link> tags in the 
+ * HTML <head> to enable parallel downloading.
+ * ===================================================================== */
+
+/* =========================================================================
+   1. BASE LAYER
+   Core variables, resets, and global layout.
+   ========================================================================= */
+@import 'base/variables.css';
+@import 'base/layout.css';
+
+/* =========================================================================
+   2. COMPONENTS & EDITOR LAYERS
+   Reusable UI elements, structural containers, and editor output.
+   Note: Sequence strictly preserved to maintain CSS cascade integrity.
+   ========================================================================= */
+@import 'components/header.css';
+@import 'components/toolbar.css';
+@import 'editor/output.css';
+@import 'components/table-menu.css';
+@import 'components/footer.css';
+@import 'components/modals.css';
+@import 'components/emoji-grid.css';
+@import 'components/ui-controls.css';
+@import 'editor/word-counter.css';
+@import 'components/fab.css';
+
+/* =========================================================================
+   3. STATES & OVERRIDES LAYER
+   Conditional UI states, interactions, and critical style overrides.
+   ========================================================================= */
+@import 'states/fullscreen.css';
+@import 'states/interactions.css';
+@import 'editor/overrides.css';

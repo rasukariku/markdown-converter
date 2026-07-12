@@ -1,0 +1,91 @@
+/* =====================================================================
+Footer Branding
+===================================================================== */
+.footer-branding {
+    /* Box Model */
+    margin-top: 50px;
+    
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    
+    /* Typography */
+    text-align: center;
+}
+
+.cat-wrapper {
+    /* Positioning */
+    position: relative;
+    
+    /* Box Model */
+    padding-bottom: 5px;
+    
+    /* Layout */
+    display: inline-block;
+    
+    /* Interaction */
+    cursor: pointer;
+}
+
+.cat-wrapper svg {
+    /* Box Model */
+    width: 110px;
+    height: 88px;
+}
+
+.fishing-rod {
+    /* Transform Origin */
+    transform-origin: 30px 40px;
+    
+    /* Transitions: Added explicit timing function for deterministic rendering */
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cat-wrapper:hover .fishing-rod {
+    /* Transforms */
+    transform: rotate(18deg);
+}
+
+.dev-credit {
+    /* Box Model */
+    margin-top: 4px;
+    
+    /* Layout */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    /* Typography */
+    line-height: 1;
+}
+
+#dev-by-text {
+    /* Typography */
+    font-family: 'Poppins', sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.dev-name {
+    /* Layout */
+    display: inline-block;
+    
+    /* Typography */
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    line-height: normal;
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+    
+    /* Transitions: Added explicit timing function for deterministic rendering */
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cat-wrapper:hover ~ .dev-credit .dev-name {
+    /* Transforms */
+    transform: translateY(-6px);
+}

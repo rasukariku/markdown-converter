@@ -1,0 +1,58 @@
+/* =====================================================================
+Floating Table Menu
+===================================================================== */
+.table-float-menu {
+    /* Positioning */
+    position: fixed; /* Fixed to prevent scroll offset bug */
+    z-index: 10000;
+    
+    /* Layout */
+    display: none;
+    flex-direction: row;
+    gap: 5px;
+    
+    /* Box Model */
+    padding: 5px;
+    
+    /* Visuals */
+    background-color: var(--bg-toolbar);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.table-float-btn {
+    /* Box Model */
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    
+    /* Layout */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    
+    /* Typography */
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--text-main);
+    
+    /* Visuals */
+    background-color: transparent;
+    
+    /* Interaction */
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.table-float-btn:hover {
+    background-color: var(--btn-tool-hover);
+}
+
+.table-float-btn.danger {
+    color: #ff4d4d;
+}
+
+.table-float-btn.danger:hover {
+    background-color: rgba(255, 77, 77, 0.1);
+}
