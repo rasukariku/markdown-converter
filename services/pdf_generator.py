@@ -132,10 +132,15 @@ def _generate_pdf_linux(source_text_html: str, input_format: str) -> tuple[str, 
         html_string = html_string.replace('</head>', f'{_PDF_CSS_STYLES}</head>')
         
         with sync_playwright() as playwright:
-            # KUNCI PERBAIKAN: Menambahkan argumen disable-dev-shm-usage dan no-sandbox untuk stabilitas Chromium di container
+            # KUNCI PERBAIKAN: Menambahkan argumen stabilitas penuh untuk Linux Chromium tanpa GPU & batasan memori bersama (/dev/shm)
             browser = playwright.chromium.launch(
                 headless=True,
-                args=["--disable-dev-shm-usage", "--no-sandbox"]
+                args=[
+                    "--disable-dev-shm-usage",
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-gpu"
+                ]
             )
             page = browser.new_page()
             page.set_content(html_string, wait_until='networkidle')

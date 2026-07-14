@@ -69,5 +69,8 @@ COPY --chown=user:user . .
 # =====================================================================
 EXPOSE 7860
 
-# KUNCI PERBAIKAN: Mengaktifkan pengalihan log Gunicorn eksplisit ke stdout/stderr kontainer (-)
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "2", "--threads", "4", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
+# KUNCI PERBAIKAN UTAMA:
+# 1. --preload: Memaksa aplikasi untuk memuat kode saat startup agar kegagalan impor langsung terlihat di log (fail-fast).
+# 2. --timeout 120: Mencegah pekerja dibunuh saat memproses dokumen berukuran besar atau rendering PDF.
+# 3. --capture-output & --enable-stdio-inheritance: Memaksa traceback Python/Flask diteruskan ke log kontainer.
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "--threads", "8", "--timeout", "120", "--preload", "--access-logfile", "-", "--error-logfile", "-", "--capture-output", "--enable-stdio-inheritance", "app:app"]

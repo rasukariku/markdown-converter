@@ -12,11 +12,12 @@ from services.pdf_generator import generate_pdf_from_docx
 os.environ.setdefault('PYPANDOC_PANDOC', '/usr/bin/pandoc')
 
 # Inisialisasi Pandoc saat aplikasi dinyalakan (Tanpa download otomatis saat runtime)
+# KUNCI PERBAIKAN: Ditulis dengan output error log yang sangat transparan agar Gunicorn preload dapat menangkap kesalahan dengan cepat jika terjadi
 try:
-    pypandoc.get_pandoc_version()
+    version = pypandoc.get_pandoc_version()
+    print(f"[INFO] Pandoc berhasil dimuat. Versi: {version}", flush=True)
 except OSError as e:
-    # Jangan panggil download_pandoc() di lingkungan Docker read-only / non-root!
-    print(f"[FATAL] Pandoc tidak ditemukan atau tidak dapat dieksekusi oleh sistem: {str(e)}")
+    print(f"[FATAL ERROR] Biner Pandoc tidak ditemukan di sistem. Harap verifikasi instalasi Dockerfile. Detail: {str(e)}", flush=True)
     raise e
 
 app = Flask(__name__)
