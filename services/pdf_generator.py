@@ -132,7 +132,11 @@ def _generate_pdf_linux(source_text_html: str, input_format: str) -> tuple[str, 
         html_string = html_string.replace('</head>', f'{_PDF_CSS_STYLES}</head>')
         
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
+            # KUNCI PERBAIKAN: Menambahkan argumen disable-dev-shm-usage dan no-sandbox untuk stabilitas Chromium di container
+            browser = playwright.chromium.launch(
+                headless=True,
+                args=["--disable-dev-shm-usage", "--no-sandbox"]
+            )
             page = browser.new_page()
             page.set_content(html_string, wait_until='networkidle')
             page.pdf(
@@ -146,7 +150,6 @@ def _generate_pdf_linux(source_text_html: str, input_format: str) -> tuple[str, 
                 },
                 print_background=True
             )
-            # Context manager automatically handles browser closure
             
         return temp_pdf.name, None
         

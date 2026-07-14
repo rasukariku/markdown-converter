@@ -8,11 +8,16 @@ from utils.file_manager import get_buffer_and_cleanup
 from services.docx_formatter import format_docx_document
 from services.pdf_generator import generate_pdf_from_docx
 
-# Inisialisasi Pandoc saat aplikasi dinyalakan
+# Pastikan pypandoc langsung merujuk ke biner pandoc sistem yang diinstal saat Docker Build
+os.environ.setdefault('PYPANDOC_PANDOC', '/usr/bin/pandoc')
+
+# Inisialisasi Pandoc saat aplikasi dinyalakan (Tanpa download otomatis saat runtime)
 try:
     pypandoc.get_pandoc_version()
-except OSError:
-    pypandoc.download_pandoc()
+except OSError as e:
+    # Jangan panggil download_pandoc() di lingkungan Docker read-only / non-root!
+    print(f"[FATAL] Pandoc tidak ditemukan atau tidak dapat dieksekusi oleh sistem: {str(e)}")
+    raise e
 
 app = Flask(__name__)
 

@@ -69,4 +69,5 @@ COPY --chown=user:user . .
 # =====================================================================
 EXPOSE 7860
 
-CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app"]
+# KUNCI PERBAIKAN: Mengaktifkan pengalihan log Gunicorn eksplisit ke stdout/stderr kontainer (-)
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "2", "--threads", "4", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
