@@ -42,7 +42,8 @@ function decodeHtmlEntities(text) {
 
 /**
  * Melindungi blok matematika dari parser Marked Markdown (Obsidian-Style Parser).
- * Mengisolasi $$...$$ dan $...$ sebelum Marked berjalan, lalu memulihkannya kembali ke HTML utuh.
+ * KUNCI PERBAIKAN: Menggunakan pembatas @@@ yang kebal terhadap parser markdown,
+ * dan menggunakan regex bebas lookbehind agar kompatibel dengan seluruh browser.
  * 
  * @param {string} text - Teks Markdown input mentah.
  * @returns {string} HTML hasil render dengan formula matematika utuh tanpa pemotongan backslash.
@@ -54,14 +55,14 @@ export function parseMarkdownWithMath(text) {
 
     // 1. Proteksi Display Math ($$...$$) secara multi-line
     let processedText = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
-        const placeholder = `__MATH_DISPLAY_PLACEHOLDER_${mathBlocks.length}__`;
+        const placeholder = `@@@MATH_DISPLAY_${mathBlocks.length}@@@`;
         mathBlocks.push({ placeholder, math: `$$${math}$$` });
         return placeholder;
     });
 
-    // 2. Proteksi Inline Math ($...$) menggunakan spesifikasi GFM (tidak boleh ada spasi liar di sekitar dollar)
-    processedText = processedText.replace(/\$(?!\s)([^\$\n]+?)(?<!\s)\$/g, (match, math) => {
-        const placeholder = `__MATH_INLINE_PLACEHOLDER_${mathBlocks.length}__`;
+    // 2. Proteksi Inline Math ($...$) bebas dari lookbehind untuk kompatibilitas WebKit/Safari
+    processedText = processedText.replace(/\$([^\$\s\n](?:[^\$\n]*?[^\$\s\n])?)\$/g, (match, math) => {
+        const placeholder = `@@@MATH_INLINE_${mathBlocks.length}@@@`;
         mathBlocks.push({ placeholder, math: `$${math}$` });
         return placeholder;
     });
@@ -69,9 +70,9 @@ export function parseMarkdownWithMath(text) {
     // 3. Jalankan parser Markdown Marked pada teks yang sudah diisolasi keselamatannya
     let parsedHTML = marked.parse(processedText);
 
-    // 4. Kembalikan blok matematika LaTeX orisinal ke dalam HTML hasil parse sebelum dimuat oleh MathJax
+    // 4. Kembalikan blok matematika LaTeX orisinal ke dalam HTML hasil parse dengan metode split-join (anti-regex error)
     mathBlocks.forEach(({ placeholder, math }) => {
-        parsedHTML = parsedHTML.replace(placeholder, math);
+        parsedHTML = parsedHTML.split(placeholder).join(math);
     });
 
     return parsedHTML;
@@ -127,7 +128,7 @@ export function syncRawToRendered(updateCounter) {
         return `\\begin{${matrixType}}\n${formattedContent}\n\\end{${matrixType}}`;
     });
 
-    // KUNCI PERBAIKAN: Jalankan parser proteksi matematika universal
+    // Jalankan parser proteksi matematika universal
     const parsedHTML = parseMarkdownWithMath(processedText);
     dom.renderedOutput.innerHTML = parsedHTML;
 
