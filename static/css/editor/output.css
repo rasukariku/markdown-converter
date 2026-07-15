@@ -1,5 +1,5 @@
 /* =====================================================================
-Rendered Output Area
+Rendered Output Area (WYSIWYG Markdown Preview & Editor)
 ===================================================================== */
 #rendered-output {
     /* Box Model */
@@ -9,6 +9,7 @@ Rendered Output Area
     border-bottom-right-radius: 7px;
     
     /* Typography */
+    font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif;
     font-size: 15px;
     line-height: 1.7;
     color: var(--text-main);
@@ -19,133 +20,164 @@ Rendered Output Area
     /* Layout */
     overflow-y: auto;
     
-    /* Transitions: Added explicit 'ease' timing function for deterministic rendering */
+    /* Transitions */
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #rendered-output:focus {
-    /* Interaction */
     outline: none;
 }
 
 #rendered-output:empty::before {
-    /* Content */
     content: attr(data-placeholder);
-    
-    /* Typography */
     color: var(--text-muted);
-    
-    /* Visuals */
     opacity: 0.5;
-    
-    /* Interaction */
     pointer-events: none;
     cursor: text;
 }
 
-/* HR Styles */
+/* =====================================================================
+Obsidian-like Document Typography
+===================================================================== */
+
+/* Paragraphs */
+#rendered-output p {
+    margin-top: 0;
+    margin-bottom: 16px;
+    line-height: 1.7;
+}
+
+/* Headings with clear hierarchies and subtle borders */
+#rendered-output h1 {
+    font-size: 1.8em;
+    font-weight: 700;
+    margin-top: 28px;
+    margin-bottom: 16px;
+    line-height: 1.3;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3em;
+}
+
+#rendered-output h2 {
+    font-size: 1.45em;
+    font-weight: 600;
+    margin-top: 26px;
+    margin-bottom: 16px;
+    line-height: 1.3;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3em;
+}
+
+#rendered-output h3 {
+    font-size: 1.25em;
+    font-weight: 600;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    line-height: 1.3;
+}
+
+#rendered-output h4 {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-top: 22px;
+    margin-bottom: 16px;
+    line-height: 1.3;
+}
+
+/* Styled Lists */
+#rendered-output ul, 
+#rendered-output ol {
+    margin-top: 0;
+    margin-bottom: 16px;
+    padding-left: 2em;
+}
+
+#rendered-output li {
+    margin-bottom: 6px;
+}
+
+/* Bold and Italic text */
+#rendered-output strong, 
+#rendered-output b {
+    font-weight: 700;
+}
+
+#rendered-output em, 
+#rendered-output i {
+    font-style: italic;
+}
+
+/* Obsidian styled Blockquotes */
+#rendered-output blockquote {
+    border-left: 4px solid #3b82f6;
+    padding: 2px 16px;
+    margin: 0 0 16px 0;
+    background-color: rgba(128, 128, 128, 0.07);
+    border-radius: 0 6px 6px 0;
+}
+
+#rendered-output blockquote p {
+    margin-bottom: 0;
+    font-style: italic;
+    color: var(--text-muted) !important;
+}
+
+/* Styled Horizontal Rule */
 #rendered-output hr {
-    /* Box Model */
     border: 0;
     border-top: 2px solid var(--border-color);
-    margin: 20px 0;
-    
-    /* Print Layout */
+    margin: 24px 0;
     page-break-inside: avoid;
 }
 
 body.light-mode #rendered-output hr {
-    /* Visuals */
     border-top-color: #d0d7de;
 }
 
-/* Blockquote */
-#rendered-output blockquote {
-    /* Box Model */
-    border-left: 4px solid var(--border-color);
-    padding-left: 16px;
-    margin: 16px 0;
-    
-    /* Typography */
-    color: var(--text-muted);
-    font-style: italic;
-}
-
-/* Code Blocks */
+/* Code Blocks & Inline Code */
 #rendered-output pre {
-    /* Box Model */
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    
-    /* Typography */
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    
-    /* Visuals */
     background-color: var(--bg-toolbar);
-    
-    /* Layout */
+    padding: 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    margin: 0 0 16px;
     overflow-x: auto;
 }
 
 #rendered-output code {
-    /* Box Model */
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 13.5px;
+    background-color: rgba(128, 128, 128, 0.18);
     padding: 2px 6px;
     border-radius: 4px;
-    
-    /* Typography */
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    
-    /* Visuals */
-    /* Fixed syntax: added spaces after commas in rgba() */
-    background-color: rgba(128, 128, 128, 0.15); 
 }
 
 #rendered-output pre code {
-    /* Visuals -> Box Model Reset */
     background-color: transparent;
     padding: 0;
     border-radius: 0;
+    font-size: 13px;
 }
 
-/* Tables */
+/* Beautiful GFM-Style Tables */
 #rendered-output table {
-    /* Box Model */
-    margin: 16px 0;
-    
-    /* Layout */
     width: 100%;
-    table-layout: fixed;
     border-collapse: collapse;
-    
-    /* Visuals */
+    margin: 0 0 16px;
     background-color: var(--bg-container);
     color: var(--text-main);
 }
 
 #rendered-output th, 
 #rendered-output td {
-    /* Box Model */
-    padding: 10px;
     border: 1px solid var(--border-color);
-    min-width: 40px;
-    
-    /* Layout */
-    position: relative;
+    padding: 10px 12px;
     text-align: left;
     vertical-align: top;
-    resize: horizontal;
-    overflow: hidden;
     word-wrap: break-word;
 }
 
 #rendered-output th {
-    /* Visuals */
-    /* Fixed syntax: added spaces after commas in rgba() */
-    background-color: rgba(128, 128, 128, 0.1); 
-    
-    /* Typography */
-    font-weight: bold;
+    background-color: rgba(128, 128, 128, 0.12);
+    font-weight: 600;
 }

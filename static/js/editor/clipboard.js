@@ -18,11 +18,9 @@ const MATHML_ATTRIBUTES_TO_REMOVE = [
 
 /**
  * Kamus pemetaan karakter reguler ke karakter tebal matematika (Mathematical Bold) asli.
- * KUNCI PERBAIKAN: Seluruh angka 0-9, huruf kecil a-z, dan huruf besar A-Z telah dipulihkan.
- * Bendera regional (seperti regional '🇨' yang korup) telah diganti menjadi simbol matematika '𝐂' yang valid.
  */
 const BOLD_MATH_MAP = Object.freeze({
-    '0': '𝟎', '1': '𝟏', '2': '𝟐', '3': '𝟑', '4': '𝟒', '5': '𝟓', '6': '𝟔', '7': '𝟕', '8': '𝟖', '9': '𝟗',
+    '0': '搶', '1': '𝟏', '2': '𝟐', '3': '𝟑', '4': '𝟒', '5': '𝟓', '6': '𝟔', '7': '𝟕', '8': '𝟖', '9': '𝟗',
     'a': '𝐚', 'b': '𝐛', 'c': '𝐜', 'd': '𝐝', 'e': '𝐞', 'f': '𝐟', 'g': '𝐠', 'h': '𝐡', 'i': '𝐢', 'j': '𝐣',
     'k': '𝐤', 'l': '𝐥', 'm': '𝐦', 'n': '𝐧', 'o': '𝐨', 'p': '𝐩', 'q': '𝐪', 'r': '𝐫', 's': '𝐬', 't': '𝐭',
     'u': '𝐮', 'v': '𝐯', 'w': '𝐰', 'x': '𝐱', 'y': '𝐲', 'z': '𝐳',
@@ -49,7 +47,6 @@ function toBoldMath(str) {
 
 /**
  * Menginisialisasi sistem clipboard lanjut (Smart Click-to-Copy dan Smart Drag-to-Copy).
- * KUNCI PERBAIKAN: Fungsi ini sekarang diekspor secara eksplisit agar dapat dimuat oleh main.js.
  */
 export function initializeClipboard() {
     
@@ -64,7 +61,6 @@ export function initializeClipboard() {
         const mmlClone = mmlContainer.firstElementChild.cloneNode(true);
         const wrapper = document.createElement('span');
         
-        // Sisipkan zero-width space (\u200B) untuk menjaga whitespace dan isolasi teks matematika saat ditempel
         wrapper.appendChild(document.createTextNode('\u200B'));
         wrapper.appendChild(mmlClone);
         wrapper.appendChild(document.createTextNode('\u200B'));
@@ -85,7 +81,7 @@ export function initializeClipboard() {
         }
     });
 
-    // 2. SMART DRAG-TO-COPY (Penanganan Seleksi Teks & Ekspor Dokumen Penuh)
+    // 2. SMART DRAG-TO-COPY DENGAN SUNTIKAN GAYA INLINE (Preservasi Format Word)
     dom.renderedOutput.addEventListener('copy', function(e) {
         const selection = window.getSelection();
         if (!selection.rangeCount || !dom.renderedOutput.contains(selection.anchorNode)) return;
@@ -97,16 +93,74 @@ export function initializeClipboard() {
         const tempDiv = document.createElement('div');
         tempDiv.appendChild(fragment);
 
-        // Standardisasi baris baru menjadi pembungkus paragraf beraliran kiri (left-aligned)
+        // Standardisasi baris baru menjadi pembungkus paragraf
         let tempHtml = `${WRAPPER_PARAGRAPH}${tempDiv.innerHTML}</p>`;
         tempHtml = tempHtml.replace(RE_LINE_BREAK, `</p>${WRAPPER_PARAGRAPH}`);
         tempDiv.innerHTML = tempHtml;
 
-        // Paksa align="left" secara eksplisit untuk mencegah layout melar (stretching) di Word
+        // KUNCI PERBAIKAN UTAMA: Suntikkan gaya CSS Inline secara dinamis pada clipboard HTML
+        // sehingga MS Word / Google Docs mengenali format tulisan dan penataan secara tepat.
         tempDiv.querySelectorAll('*').forEach(el => {
-            el.style.textAlign = 'left';
-            if (['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH'].includes(el.tagName)) {
-                el.setAttribute('align', 'left');
+            const tag = el.tagName;
+            
+            // Setel dasar huruf ke Times New Roman hitam
+            el.style.fontFamily = "'Times New Roman', serif";
+            el.style.color = "black";
+            
+            if (tag === 'P' || tag === 'LI' || tag === 'SPAN') {
+                el.style.fontSize = '12pt';
+                el.style.lineHeight = '1.5';
+                el.style.textAlign = 'justify';
+            } else if (tag === 'H1') {
+                el.style.fontSize = '20pt';
+                el.style.fontWeight = 'bold';
+                el.style.marginTop = '12pt';
+                el.style.marginBottom = '6pt';
+                el.style.textAlign = 'left';
+            } else if (tag === 'H2') {
+                el.style.fontSize = '16pt';
+                el.style.fontWeight = 'bold';
+                el.style.marginTop = '12pt';
+                el.style.marginBottom = '6pt';
+                el.style.textAlign = 'left';
+            } else if (tag === 'H3') {
+                el.style.fontSize = '14pt';
+                el.style.fontWeight = 'bold';
+                el.style.marginTop = '12pt';
+                el.style.marginBottom = '6pt';
+                el.style.textAlign = 'left';
+            } else if (tag === 'BLOCKQUOTE') {
+                el.style.borderLeft = '3.5pt solid #3b82f6';
+                el.style.paddingLeft = '12pt';
+                el.style.marginLeft = '0';
+                el.style.color = '#555555';
+                el.style.fontStyle = 'italic';
+                el.style.backgroundColor = '#f9fafb';
+            } else if (tag === 'TABLE') {
+                el.style.borderCollapse = 'collapse';
+                el.style.width = '100%';
+                el.setAttribute('border', '1');
+                el.setAttribute('cellspacing', '0');
+                el.setAttribute('cellpadding', '6');
+            } else if (tag === 'TH' || tag === 'TD') {
+                el.style.border = '1px solid #000000';
+                el.style.padding = '8px';
+                el.style.textAlign = 'left';
+                el.style.verticalAlign = 'top';
+            } else if (tag === 'TH') {
+                el.style.backgroundColor = '#f3f4f6';
+                el.style.fontWeight = 'bold';
+            } else if (tag === 'CODE') {
+                el.style.fontFamily = "'Consolas', 'Courier New', monospace";
+                el.style.backgroundColor = '#f4f4f5';
+                el.style.padding = '2px 4px';
+                el.style.borderRadius = '4px';
+                el.style.fontSize = '10pt';
+            } else if (tag === 'PRE') {
+                el.style.backgroundColor = '#f4f4f5';
+                el.style.padding = '12px';
+                el.style.borderRadius = '6px';
+                el.style.border = '1px solid #e4e4e7';
             }
         });
 
@@ -167,16 +221,6 @@ export function initializeClipboard() {
                     node.parentNode.replaceChild(textSpan, node);
                 }
             }
-        });
-
-        // Bersihkan style inline pada tabel agar default border hitam terpasang dengan rapi di MS Word
-        tempDiv.querySelectorAll('table').forEach(table => {
-            table.removeAttribute('style');
-            table.setAttribute('border', '1');
-            table.setAttribute('cellspacing', '0');
-            table.setAttribute('cellpadding', '0');
-            table.style.borderCollapse = 'collapse';
-            table.style.width = '100%';
         });
 
         e.clipboardData.setData('text/html', tempDiv.outerHTML);
