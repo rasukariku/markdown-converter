@@ -3,7 +3,6 @@ import { dom, state } from './state.js';
 // =========================================================================
 // PRE-COMPILED REGULAR EXPRESSIONS
 // =========================================================================
-// Pre-compile regexes to eliminate runtime parsing overhead during high-frequency input events.
 const RE_SPECIAL_CHARS = /[\u00A0\u202F\u200B-\u200D\uFEFF]/g;
 const RE_CRLF = /\r\n/g;
 const RE_CR = /\r/g;
@@ -21,9 +20,8 @@ const RE_MATH_FRAC = /([-]?\d+)[ \t]*\/[ \t]*([-]?\d+)/g;
 const RE_MATH_SPACES = /[ \t]{2,}/g;
 const RE_EXCESS_NEWLINES = /\n{3,}/g;
 const RE_MATRIX_MATH = /(?:\\mathbf|\\boldsymbol)\{\s*\\begin\{([a-zA-Z]*matrix)\}([\s\S]*?)\\end\{\1\}\s*\}/g;
-const RE_BACKSLASH_ESCAPE = /\\\\/g;
 
-// Comprehensive HTML entity decoder for MathJax attributes
+// Decoders for MathJax attributes
 const RE_HTML_ENTITIES = /&amp;|&lt;|&gt;|&quot;|&#39;/g;
 const HTML_ENTITY_MAP = {
     '&amp;': '&',
@@ -33,7 +31,6 @@ const HTML_ENTITY_MAP = {
     '&#39;': "'"
 };
 
-// Extract magic string to module-level constant
 const STORAGE_KEY = 'massivemark_draft_md';
 
 // =========================================================================
@@ -43,9 +40,43 @@ function decodeHtmlEntities(text) {
     return text.replace(RE_HTML_ENTITIES, (match) => HTML_ENTITY_MAP[match]);
 }
 
-// =========================================================================
-// EXPORTED FUNCTIONS
-// =========================================================================
+/**
+ * Melindungi blok matematika dari parser Marked Markdown (Obsidian-Style Parser).
+ * Mengisolasi $$...$$ dan $...$ sebelum Marked berjalan, lalu memulihkannya kembali ke HTML utuh.
+ * 
+ * @param {string} text - Teks Markdown input mentah.
+ * @returns {string} HTML hasil render dengan formula matematika utuh tanpa pemotongan backslash.
+ */
+export function parseMarkdownWithMath(text) {
+    if (!text) return '';
+
+    const mathBlocks = [];
+
+    // 1. Proteksi Display Math ($$...$$) secara multi-line
+    let processedText = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
+        const placeholder = `__MATH_DISPLAY_PLACEHOLDER_${mathBlocks.length}__`;
+        mathBlocks.push({ placeholder, math: `$$${math}$$` });
+        return placeholder;
+    });
+
+    // 2. Proteksi Inline Math ($...$) menggunakan spesifikasi GFM (tidak boleh ada spasi liar di sekitar dollar)
+    processedText = processedText.replace(/\$(?!\s)([^\$\n]+?)(?<!\s)\$/g, (match, math) => {
+        const placeholder = `__MATH_INLINE_PLACEHOLDER_${mathBlocks.length}__`;
+        mathBlocks.push({ placeholder, math: `$${math}$` });
+        return placeholder;
+    });
+
+    // 3. Jalankan parser Markdown Marked pada teks yang sudah diisolasi keselamatannya
+    let parsedHTML = marked.parse(processedText);
+
+    // 4. Kembalikan blok matematika LaTeX orisinal ke dalam HTML hasil parse sebelum dimuat oleh MathJax
+    mathBlocks.forEach(({ placeholder, math }) => {
+        parsedHTML = parsedHTML.replace(placeholder, math);
+    });
+
+    return parsedHTML;
+}
+
 export function sanitizeAIText(plainData) {
     plainData = plainData.replace(RE_SPECIAL_CHARS, ' ');
     plainData = plainData.replace(RE_CRLF, '\n');
@@ -96,7 +127,8 @@ export function syncRawToRendered(updateCounter) {
         return `\\begin{${matrixType}}\n${formattedContent}\n\\end{${matrixType}}`;
     });
 
-    const parsedHTML = marked.parse(processedText.replace(RE_BACKSLASH_ESCAPE, '\\\\\\\\'));
+    // KUNCI PERBAIKAN: Jalankan parser proteksi matematika universal
+    const parsedHTML = parseMarkdownWithMath(processedText);
     dom.renderedOutput.innerHTML = parsedHTML;
 
     MathJax.typesetPromise([dom.renderedOutput])

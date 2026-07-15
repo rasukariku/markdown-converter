@@ -1,12 +1,9 @@
 import { dom } from '../core/state.js';
-import { sanitizeAIText, syncRawToRendered } from '../core/sync.js';
+import { sanitizeAIText, syncRenderedToRaw, parseMarkdownWithMath } from '../core/sync.js';
 
 // =========================================================================
 // MODULE-LEVEL CONSTANTS
 // =========================================================================
-
-// Pre-compile regex untuk pencarian backslash guna mengoptimalkan pemrosesan teks pasting matematika
-const RE_BACKSLASH_ESCAPE = /\\/g;
 
 // Jeda asinkron untuk memastikan operasi penempelan HTML (insertHTML) telah tuntas sebelum proses parsing gaya
 const PASTE_SYNC_DELAY_MS = 50;
@@ -34,7 +31,9 @@ export function initializePasteInterceptors(standardTurndown, updateCounter) {
         
         // Lakukan sanitasi AI pada teks biasa yang ditempelkan
         const processedText = sanitizeAIText(plainData);
-        const parsedHTML = marked.parse(processedText.replace(RE_BACKSLASH_ESCAPE, '\\\\\\\\'));
+        
+        // KUNCI PERBAIKAN: Gunakan parser isolasi matematika universal untuk merender HTML secara aman
+        const parsedHTML = parseMarkdownWithMath(processedText);
         
         document.execCommand('insertHTML', false, parsedHTML);
         
@@ -73,7 +72,7 @@ export function initializePasteInterceptors(standardTurndown, updateCounter) {
         target.value = target.value.substring(0, start) + processedText + target.value.substring(end);
         target.selectionStart = target.selectionEnd = start + processedText.length;
         
-        // KUNCI PERBAIKAN: Sinkronisasikan secara instan hasil paste markdown mentah ke editor visual
+        // Kunci Perbaikan: Sinkronisasikan secara instan hasil paste markdown mentah ke editor visual
         syncRawToRendered(updateCounter);
     });
 }

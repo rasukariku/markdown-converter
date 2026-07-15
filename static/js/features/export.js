@@ -1,14 +1,10 @@
 import { dom } from '../core/state.js';
 import { openWin } from '../ui/modals.js';
+import { parseMarkdownWithMath } from '../core/sync.js';
 
 // =========================================================================
 // MODULE-LEVEL CONSTANTS & HELPERS
 // =========================================================================
-
-// Pre-compile regular expressions untuk mengurangi overhead runtime parsing
-const RE_EXCESS_NEWLINES = /\n{3,}/g;
-const RE_EXCESS_HR = /(?:\n\n---\n\n){2,}/g;
-const RE_BACKSLASH_ESCAPE = /\\/g;
 
 // Kamus pemecah entitas HTML untuk memulihkan sintaks MathJax murni
 const RE_HTML_ENTITIES = /&amp;|&lt;|&gt;|&quot;|&#39;/g;
@@ -54,24 +50,25 @@ export function initializeExport(dedicatedExportTurndown, syncRenderedToRaw, upd
         const clone = dom.renderedOutput.cloneNode(true);
         let md = dedicatedExportTurndown.turndown(clone.innerHTML);
         
-        md = md.replace(RE_EXCESS_NEWLINES, '\n\n');
-        md = md.replace(RE_EXCESS_HR, '\n\n---\n\n');
+        md = md.replace(/\n{3,}/g, '\n\n');
+        md = md.replace(/(?:\n\n---\n\n){2,}/g, '\n\n---\n\n');
         
         dom.universalMarkdownInput.value = md;
     }
 
     // Aksi Klik: Buka Modal Ekspor Universal
     btnOpenUni.onclick = () => {
-        // KUNCI PERBAIKAN: Fungsi openWin sekarang diimpor eksplisit dan aman dipanggil
         openWin('win-uni');
         renderUniversalExport();
         dom.universalMarkdownInput.focus();
     };
 
-    // Sinkronisasi Dua Arah: Input pada Universal Modal mentransfer konten ke editor visual
+    // Sinkronisasi Dua Arah: Input pada Universal Modal mentransfer konten ke editor visual secara aman
     dom.universalMarkdownInput.addEventListener('input', function() {
         const rawText = dom.universalMarkdownInput.value;
-        const parsedHTML = marked.parse(rawText.replace(RE_BACKSLASH_ESCAPE, '\\\\\\\\'));
+        
+        // KUNCI PERBAIKAN: Gunakan parser matematika universal yang aman dari stripping backslash
+        const parsedHTML = parseMarkdownWithMath(rawText);
         
         dom.renderedOutput.innerHTML = parsedHTML;
         
