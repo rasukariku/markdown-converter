@@ -17,37 +17,62 @@ export function initializeLivePreview() {
         const codeToggle = e.target.closest('.math-code-toggle');
         if (codeToggle) {
             const card = codeToggle.closest('.math-preview-card');
-            const rawLine = card.previousElementSibling;
+            const wrapper = card.closest('.math-wrapper');
+            const rawLine = wrapper.querySelector('.math-raw-line');
+            const toolbar = wrapper.querySelector('.math-toolbar');
             
-            if (rawLine && rawLine.classList.contains('math-raw-line')) {
-                const isHidden = window.getComputedStyle(rawLine).display === 'none';
-                rawLine.style.display = isHidden ? 'block' : 'none';
-                
-                if (isHidden) {
-                    rawLine.focus();
-                }
+            const isHidden = window.getComputedStyle(rawLine).display === 'none';
+            rawLine.style.display = isHidden ? 'block' : 'none';
+            
+            if (isHidden) {
+                wrapper.classList.add('active-preview');
+                rawLine.focus();
+                if (toolbar) toolbar.classList.add('active');
+            } else {
+                wrapper.classList.remove('active-preview');
+                if (toolbar) toolbar.classList.remove('active');
             }
             return;
         }
 
         // Jalankan editing saat visual preview rumus diklik langsung
-        const previewEl = e.target.closest('.math-preview-rendered');
-        if (previewEl) {
-            const card = previewEl.closest('.math-preview-card');
-            const rawLine = card.previousElementSibling;
+        const previewRendered = e.target.closest('.math-preview-rendered');
+        if (previewRendered) {
+            const card = previewRendered.closest('.math-preview-card');
+            const wrapper = card.closest('.math-wrapper');
+            const rawLine = wrapper.querySelector('.math-raw-line');
+            const toolbar = wrapper.querySelector('.math-toolbar');
             
-            if (rawLine && rawLine.classList.contains('math-raw-line')) {
-                rawLine.style.display = 'block';
-                rawLine.focus();
-                
-                // Posisikan kursor otomatis di bagian paling belakang teks
-                const range = document.createRange();
-                const sel = window.getSelection();
-                range.selectNodeContents(rawLine);
-                range.collapse(false);
-                sel.removeAllRanges();
-                sel.addRange(range);
-            }
+            wrapper.classList.add('active-preview');
+            rawLine.style.display = 'block';
+            rawLine.focus();
+            if (toolbar) toolbar.classList.add('active');
+            
+            // Posisikan kursor otomatis di bagian paling belakang teks
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(rawLine);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+            return;
+        }
+
+        // Salin Cepat via Toolbar Melayang
+        const copyBtn = e.target.closest('.math-copy-btn');
+        if (copyBtn) {
+            const wrapper = copyBtn.closest('.math-wrapper');
+            const rawLine = wrapper.querySelector('.math-raw-line');
+            const rawText = rawLine ? rawLine.innerText.trim() : '';
+            const isDisplay = rawLine.classList.contains('display-math-raw');
+            const formattedLaTeX = isDisplay ? `$$ ${rawText} $$` : `$${rawText}$`;
+            
+            navigator.clipboard.writeText(formattedLaTeX);
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = '📋 Copied!';
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText;
+            }, 1500);
             return;
         }
 
@@ -71,19 +96,20 @@ export function initializeLivePreview() {
         }
     });
 
-    // 2. KUNCI PERBAIKAN: Deteksi perubahan input real-time saat pengguna mengetik LaTeX matematika
+    // 2. Sinkronisasi real-time saat pengguna mengetik LaTeX matematika
     dom.renderedOutput.addEventListener('input', (e) => {
         const rawLine = e.target.closest('.math-raw-line');
         if (rawLine) {
-            const previewCard = rawLine.nextElementSibling;
-            if (previewCard && previewCard.classList.contains('math-preview-card')) {
+            const wrapper = rawLine.closest('.math-wrapper');
+            const previewCard = wrapper.querySelector('.math-preview-card');
+            if (previewCard) {
                 const previewRendered = previewCard.querySelector('.math-preview-rendered');
                 const editedText = rawLine.innerText.trim();
+                const isDisplay = rawLine.classList.contains('display-math-raw');
                 
-                // Perbarui visual LaTeX sementara secara instan
-                previewRendered.innerHTML = editedText;
+                // Rakit kembali delimiters secara instan untuk kebutuhan kompilasi MathJax
+                previewRendered.innerHTML = isDisplay ? `$$ ${editedText} $$` : `$${editedText}$`;
                 
-                // Kompilasi ulang formula MathJax lokal tanpa membuang fokus kursor pengetikan aktif
                 MathJax.typesetPromise([previewRendered]).then(() => {
                     if (typeof window.triggerSync === 'function') {
                         window.triggerSync();
@@ -93,29 +119,33 @@ export function initializeLivePreview() {
         }
     });
 
-    // 3. Delegasi Event Focusout untuk merapikan kembali ke tampilan preview statis
+    // 3. Delegasi Event Focusout untuk menyembunyikan panel input mentah
     dom.renderedOutput.addEventListener('focusout', (e) => {
         const rawLine = e.target.closest('.math-raw-line');
         if (rawLine) {
-            const previewCard = rawLine.nextElementSibling;
-            if (previewCard && previewCard.classList.contains('math-preview-card')) {
-                setTimeout(() => {
-                    // Sembunyikan panel edit jika fokus berpindah keluar dari penulisan teks dan kartu preview-nya
-                    if (document.activeElement !== rawLine && !previewCard.contains(document.activeElement)) {
-                        rawLine.style.display = 'none';
-                        
-                        const previewRendered = previewCard.querySelector('.math-preview-rendered');
-                        const editedText = rawLine.innerText;
-                        previewRendered.innerHTML = editedText;
-                        
-                        MathJax.typesetPromise([previewRendered]).then(() => {
-                            if (typeof window.triggerSync === 'function') {
-                                window.triggerSync();
-                            }
-                        });
-                    }
-                }, 150);
-            }
+            const wrapper = rawLine.closest('.math-wrapper');
+            const previewCard = wrapper.querySelector('.math-preview-card');
+            const toolbar = wrapper.querySelector('.math-toolbar');
+            
+            setTimeout(() => {
+                // Sembunyikan panel edit jika fokus berpindah keluar dari komponen matematika ini sepenuhnya
+                if (document.activeElement !== rawLine && !previewCard.contains(document.activeElement)) {
+                    wrapper.classList.remove('active-preview');
+                    rawLine.style.display = 'none';
+                    if (toolbar) toolbar.classList.remove('active');
+                    
+                    const previewRendered = previewCard.querySelector('.math-preview-rendered');
+                    const editedText = rawLine.innerText;
+                    const isDisplay = rawLine.classList.contains('display-math-raw');
+                    previewRendered.innerHTML = isDisplay ? `$$ ${editedText} $$` : `$${editedText}$`;
+                    
+                    MathJax.typesetPromise([previewRendered]).then(() => {
+                        if (typeof window.triggerSync === 'function') {
+                            window.triggerSync();
+                        }
+                    });
+                }
+            }, 150);
             return;
         }
 

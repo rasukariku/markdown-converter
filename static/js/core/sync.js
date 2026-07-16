@@ -41,40 +41,36 @@ function decodeHtmlEntities(text) {
 }
 
 /**
- * Membuat komponen berdampingan (Sibling-Based) untuk input teks mentah dan kartu pratinjau rumus.
- * Menghilangkan nesting contenteditable="false" yang merusak fungsionalitas kursor teks browser.
- * 
- * @param {string} mathContent - Teks LaTeX matematika mentah.
- * @param {boolean} isDisplay - Penanda jenis block (display math) atau inline math.
- * @returns {string} Markup HTML terpisah.
+ * Membuat komponen pembungkus matematika Obsidian-style.
+ * KUNCI PERBAIKAN: Karakter penanda dollar ditiadakan dari isi DOM teks .math-raw-line
+ * dan didelegasikan ke CSS attr() untuk mencegah MathJax memicu render duplikat.
  */
 function createInteractiveMathWrapper(mathContent, isDisplay) {
     const cleanContent = mathContent.trim();
-    const rawLaTeX = isDisplay ? `$$ ${cleanContent} $$` : `$${cleanContent}$`;
+    const wrapperClass = isDisplay ? 'math-wrapper display-math-wrapper' : 'math-wrapper inline-math-wrapper';
     const displayClass = isDisplay ? 'display-math-raw' : 'inline-math-raw';
+    const displayAttr = isDisplay ? 'true' : 'false';
+    const delim = isDisplay ? '$$' : '$';
 
-    if (isDisplay) {
-        return `
-            <p class="math-raw-line ${displayClass}" contenteditable="true">${rawLaTeX}</p>
-            <div class="math-preview-card" contenteditable="false">
-                <div class="math-preview-rendered">${rawLaTeX}</div>
-                <button type="button" class="math-code-toggle">&lt;/&gt;</button>
-            </div>
-        `.trim();
-    } else {
-        return `
-            <span class="math-raw-line ${displayClass}" contenteditable="true">${rawLaTeX}</span>
+    // Preview tetap menggunakan delimiters penuh agar dikenali oleh MathJax compiler
+    const previewLaTeX = isDisplay ? `$$ ${cleanContent} $$` : `$${cleanContent}$`;
+
+    return `
+        <span class="${wrapperClass}" contenteditable="false" data-math-display="${displayAttr}">
+            <span class="math-raw-line ${displayClass}" contenteditable="true" data-delimiter-left="${delim}" data-delimiter-right="${delim}">${cleanContent}</span>
             <span class="math-preview-card" contenteditable="false">
-                <span class="math-preview-rendered">${rawLaTeX}</span>
-                <button type="button" class="math-code-toggle" style="display:none;">&lt;/&gt;</button>
+                <span class="math-preview-rendered">${previewLaTeX}</span>
+                <span class="math-toolbar">
+                    <button type="button" class="math-toolbar-btn math-copy-btn" title="Copy LaTeX">📋 Copy</button>
+                    <button type="button" class="math-toolbar-btn math-code-toggle" title="Toggle Code">&lt;/&gt;</button>
+                </span>
             </span>
-        `.trim();
-    }
+        </span>
+    `.trim();
 }
 
 /**
  * Melindungi blok matematika dari parser Marked Markdown (Obsidian-Style Parser).
- * KUNCI PERBAIKAN: Mengisolasi formula matematika sebelum Marked berjalan menggunakan markup berdampingan.
  * 
  * @param {string} text - Teks Markdown input mentah.
  * @returns {string} HTML hasil render dengan komponen interaktif terintegrasi.
@@ -92,7 +88,7 @@ export function parseMarkdownWithMath(text) {
         return placeholder;
     });
 
-    // 2. Proteksi & Konstruksi Inline Math ($...$) bebas lookbehind untuk kompatibilitas WebKit/Safari
+    // 2. Proteksi & Konstruksi Inline Math ($...$) bebas dari lookbehind
     processedText = processedText.replace(/\$([^\$\s\n](?:[^\$\n]*?[^\$\s\n])?)\$/g, (match, math) => {
         const placeholder = `@@@MATH_INLINE_${mathBlocks.length}@@@`;
         const wrapper = createInteractiveMathWrapper(math, false);
@@ -108,7 +104,7 @@ export function parseMarkdownWithMath(text) {
         parsedHTML = parsedHTML.split(placeholder).join(wrapper);
     });
 
-    // 5. KUNCI PERBAIKAN: Konversi tag <hr> statis menjadi komponen HR interaktif Obsidian-Style berdampingan
+    // 5. Konversi tag <hr> statis menjadi komponen HR interaktif Obsidian-Style
     parsedHTML = parsedHTML.replace(/<hr\s*\/?>/gi, `
         <div class="hr-raw-line" contenteditable="true">---</div>
         <div class="hr-preview-line" contenteditable="false"></div>
@@ -191,23 +187,25 @@ export function syncRenderedToRaw(standardTurndown, updateCounter) {
 
     const clone = dom.renderedOutput.cloneNode(true);
 
-    // KUNCI PERBAIKAN SINKRONISASI: Hapus semua visual preview card pembantu sebelum konversi markdown
+    // Hapus semua visual preview card pembantu sebelum konversi markdown
     clone.querySelectorAll('.math-preview-card').forEach(card => card.remove());
     clone.querySelectorAll('.hr-preview-line').forEach(line => line.remove());
 
-    // KUNCI PERBAIKAN SINKRONISASI: Kembalikan teks asli dari kotak raw matematika murni
+    // KUNCI PERBAIKAN SINKRONISASI: Kembalikan teks asli dengan merakit kembali delimiters dollar ($ atau $$) secara dinamis
     clone.querySelectorAll('.math-raw-line').forEach(rawLine => {
         const rawText = rawLine.innerText.trim();
-        rawLine.parentNode.replaceChild(document.createTextNode(rawText), rawLine);
+        const isDisplay = rawLine.classList.contains('display-math-raw');
+        const formattedLaTeX = isDisplay ? `$$ ${rawText} $$` : `$${rawText}$`;
+        rawLine.parentNode.replaceChild(document.createTextNode(formattedLaTeX), rawLine);
     });
 
-    // KUNCI PERBAIKAN SINKRONISASI: Kembalikan teks pembatas asli dari kotak raw pemisah
+    // Kembalikan teks pembatas asli dari kotak raw pemisah
     clone.querySelectorAll('.hr-raw-line').forEach(rawLine => {
         const rawText = rawLine.innerText.trim();
         rawLine.parentNode.replaceChild(document.createTextNode('\n\n' + rawText + '\n\n'), rawLine);
     });
 
-    // Cadangan pembersihan MathJax mjx-container jika ada yang terlewat di luar wrapper
+    // Cadangan pembersihan MathJax mjx-container jika ada yang terlewat
     clone.querySelectorAll('mjx-container').forEach(node => {
         const rawTex = node.getAttribute('data-raw-tex');
         const isDisplay = node.getAttribute('data-math-display') === 'true';

@@ -173,35 +173,68 @@ Obsidian-like Document Typography
 /* =====================================================================
    Obsidian-Style Live Preview (Math & HR Sibling-Based Layout)
    ===================================================================== */
+.math-wrapper {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    width: 100%;
+    box-sizing: border-box;
+}
 
-/* 1. Baris Kode LaTeX Mentah - Berdiri mandiri secara vertikal di atas preview */
+.display-math-wrapper {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin: 24px 0;
+}
+
+/* Area input raw rumus LaTeX bertema gelap Obsidian */
 .math-raw-line {
     display: none; /* Disembunyikan saat visual preview aktif */
     font-family: 'Consolas', 'Courier New', monospace !important;
-    font-size: 14.5px;
-    color: #f1739c !important; /* Warna pinkish-purple sesuai tangkapan layar */
-    background-color: #1e1e2e; /* Editor bertema gelap Obsidian */
+    font-size: 14px;
+    color: #f1739c !important; /* Warna pinkish-purple sesuai tangkapan layar 2 */
+    background-color: #1e1e2e; /* Dark editor background */
     padding: 10px 14px;
     border-radius: 6px;
-    border-left: 3px solid #8b5cf6; /* Garis vertikal ungu elegan di sisi kiri */
+    border: 1px solid var(--border-color);
+    white-space: pre-wrap;
+    word-break: break-all;
     outline: none;
-    margin: 12px 0;
+    margin-bottom: 12px;
     width: 100%;
     box-sizing: border-box;
     caret-color: #c084fc; /* Warna kursor ungu indah */
 }
 
+/* KUNCI PERBAIKAN: Gunakan CSS Pseudo-Elements untuk menampilkan delimiters $$ secara visual tanpa merusak DOM teks */
+.math-raw-line::before {
+    content: attr(data-delimiter-left);
+    color: #8b5cf6;
+    font-weight: bold;
+    margin-right: 6px;
+}
+
+.math-raw-line::after {
+    content: attr(data-delimiter-right);
+    color: #8b5cf6;
+    font-weight: bold;
+    margin-left: 6px;
+}
+
 .math-raw-line.active {
     display: block;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
 }
 
 .math-raw-line::selection,
 .math-raw-line *::selection {
-    background-color: rgba(139, 92, 246, 0.35) !important;
+    background-color: rgba(139, 92, 246, 0.3) !important;
     color: inherit !important;
 }
 
-/* 2. Kartu Preview Rumus - Berada berdampingan di bawah baris kode LaTeX */
+/* Kartu Preview Persamaan Matematika */
 .math-preview-card {
     position: relative;
     display: block;
@@ -214,9 +247,28 @@ Obsidian-like Document Typography
     transition: border-color 0.2s, background-color 0.2s;
 }
 
-.math-preview-card:hover {
+/* Efek hover dan fokus batas ungu melingkar pada preview rumus aktif */
+.math-wrapper.active-preview .math-preview-card {
+    border-color: #8b5cf6;
     background-color: rgba(139, 92, 246, 0.02);
-    border-color: rgba(139, 92, 246, 0.3);
+}
+
+/* KUNCI PERBAIKAN: Sisipkan kembali ikon lingkaran centang biru di sudut kanan bawah preview rumus aktif */
+.math-wrapper.active-preview .math-preview-card::after {
+    content: '✓';
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 18px;
+    height: 18px;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
 }
 
 .math-preview-rendered {
@@ -225,11 +277,50 @@ Obsidian-like Document Typography
     cursor: pointer;
 }
 
+/* Toolbar melayang di atas area rumus matematika */
+.math-toolbar {
+    display: none;
+    position: absolute;
+    top: -16px;
+    right: 12px;
+    background-color: #1e1e2e;
+    border: 1px solid #3e4446;
+    border-radius: 6px;
+    padding: 4px;
+    gap: 6px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    align-items: center;
+}
+
+/* Tampilkan toolbar melayang saat preview aktif atau di-hover */
+.math-wrapper.active-preview .math-toolbar,
+.math-wrapper:hover .math-toolbar {
+    display: flex;
+}
+
+.math-toolbar-btn {
+    background: transparent;
+    border: none;
+    color: #a0a0a0;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.math-toolbar-btn:hover {
+    background-color: #3e4446;
+    color: #ffffff;
+}
+
 /* Tombol Toggle Kode di Sisi Kanan Kartu Preview */
 .math-code-toggle {
-    position: absolute;
-    top: 10px;
-    right: 12px;
     background: transparent;
     border: none;
     color: var(--text-muted);
@@ -273,7 +364,7 @@ span.math-preview-card .math-code-toggle {
     display: none;
 }
 
-/* 3. Garis Pemisah Interaktif (HR Sibling) */
+/* Garis Pemisah Interaktif (HR Sibling) */
 .hr-raw-line {
     display: none; /* Sembunyikan secara default; tampilkan saat diklik */
     font-family: 'Consolas', 'Courier New', monospace !important;
@@ -294,7 +385,7 @@ span.math-preview-card .math-code-toggle {
     display: inline-block;
 }
 
-/* KUNCI PERBAIKAN: Sembunyikan garis visual secara total saat teks raw penyunting pembatas aktif */
+/* Sembunyikan garis visual secara total saat teks raw penyunting pembatas aktif */
 .hr-raw-line.active ~ .hr-preview-line {
     display: none !important;
 }
