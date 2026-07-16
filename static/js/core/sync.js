@@ -41,39 +41,73 @@ function decodeHtmlEntities(text) {
 }
 
 /**
+ * Membuat struktur markup pembungkus interaktif matematika Obsidian-Style.
+ * 
+ * @param {string} mathContent - Teks LaTeX matematika mentah.
+ * @param {boolean} isDisplay - Penanda jenis block (display math) atau inline math.
+ * @returns {string} Untaian elemen HTML pembungkus interaktif.
+ */
+function createInteractiveMathWrapper(mathContent, isDisplay) {
+    const cleanContent = mathContent.trim();
+    const wrapperClass = isDisplay ? 'math-wrapper display-math-wrapper' : 'math-wrapper inline-math-wrapper';
+    const displayAttr = isDisplay ? 'true' : 'false';
+    const rawLaTeX = isDisplay ? `$$${cleanContent}$$` : `$${cleanContent}$`;
+
+    return `
+        <span class="${wrapperClass}" contenteditable="false" data-math-display="${displayAttr}">
+            <span class="math-raw" contenteditable="true">${rawLaTeX}</span>
+            <span class="math-preview">${rawLaTeX}</span>
+            <span class="math-toolbar">
+                <button type="button" class="math-toolbar-btn math-copy-btn" title="Copy LaTeX">📋 Copy</button>
+                <button type="button" class="math-toolbar-btn math-code-toggle" title="Toggle Code">&lt;/&gt;</button>
+            </span>
+        </span>
+    `.trim();
+}
+
+/**
  * Melindungi blok matematika dari parser Marked Markdown (Obsidian-Style Parser).
- * KUNCI PERBAIKAN: Menggunakan pembatas @@@ yang kebal terhadap parser markdown,
- * dan menggunakan regex bebas lookbehind agar kompatibel dengan seluruh browser.
+ * KUNCI PERBAIKAN: Mengintegrasikan komponen interaktif penyuntingan LaTeX di tempat (Live Preview).
  * 
  * @param {string} text - Teks Markdown input mentah.
- * @returns {string} HTML hasil render dengan formula matematika utuh tanpa pemotongan backslash.
+ * @returns {string} HTML hasil render dengan komponen interaktif terintegrasi.
  */
 export function parseMarkdownWithMath(text) {
     if (!text) return '';
 
     const mathBlocks = [];
 
-    // 1. Proteksi Display Math ($$...$$) secara multi-line
+    // 1. Proteksi & Konstruksi Display Math ($$...$$) secara multi-line
     let processedText = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
         const placeholder = `@@@MATH_DISPLAY_${mathBlocks.length}@@@`;
-        mathBlocks.push({ placeholder, math: `$$${math}$$` });
+        const wrapper = createInteractiveMathWrapper(math, true);
+        mathBlocks.push({ placeholder, wrapper });
         return placeholder;
     });
 
-    // 2. Proteksi Inline Math ($...$) bebas dari lookbehind untuk kompatibilitas WebKit/Safari
+    // 2. Proteksi & Konstruksi Inline Math ($...$) bebas lookbehind demi performa browser maksimal
     processedText = processedText.replace(/\$([^\$\s\n](?:[^\$\n]*?[^\$\s\n])?)\$/g, (match, math) => {
         const placeholder = `@@@MATH_INLINE_${mathBlocks.length}@@@`;
-        mathBlocks.push({ placeholder, math: `$${math}$` });
+        const wrapper = createInteractiveMathWrapper(math, false);
+        mathBlocks.push({ placeholder, wrapper });
         return placeholder;
     });
 
-    // 3. Jalankan parser Markdown Marked pada teks yang sudah diisolasi keselamatannya
+    // 3. Jalankan parser Markdown Marked pada teks terisolasi
     let parsedHTML = marked.parse(processedText);
 
-    // 4. Kembalikan blok matematika LaTeX orisinal ke dalam HTML hasil parse dengan metode split-join (anti-regex error)
-    mathBlocks.forEach(({ placeholder, math }) => {
-        parsedHTML = parsedHTML.split(placeholder).join(math);
+    // 4. Kembalikan komponen matematika interaktif ke dalam HTML hasil parse dengan metode split-join
+    mathBlocks.forEach(({ placeholder, wrapper }) => {
+        parsedHTML = parsedHTML.split(placeholder).join(wrapper);
     });
+
+    // 5. KUNCI PERBAIKAN: Konversi tag <hr> statis menjadi komponen HR interaktif Obsidian-Style
+    parsedHTML = parsedHTML.replace(/<hr\s*\/?>/gi, `
+        <div class="hr-wrapper" contenteditable="false">
+            <span class="hr-raw" contenteditable="true">---</span>
+            <div class="hr-line"></div>
+        </div>
+    `.trim());
 
     return parsedHTML;
 }
@@ -128,7 +162,6 @@ export function syncRawToRendered(updateCounter) {
         return `\\begin{${matrixType}}\n${formattedContent}\n\\end{${matrixType}}`;
     });
 
-    // Jalankan parser proteksi matematika universal
     const parsedHTML = parseMarkdownWithMath(processedText);
     dom.renderedOutput.innerHTML = parsedHTML;
 
@@ -137,11 +170,7 @@ export function syncRawToRendered(updateCounter) {
             dom.renderedOutput.querySelectorAll('mjx-container').forEach(node => {
                 node.setAttribute('contenteditable', 'false');
             });
-            dom.renderedOutput.querySelectorAll('hr').forEach(hr => {
-                hr.style.borderTop = '2px solid var(--border-color)';
-                hr.style.margin = '20px 0';
-                hr.style.clear = 'both';
-            });
+            // HR dinamis ditangani terpisah oleh parseMarkdownWithMath, tidak perlu timpa style hr statis
             updateCounter();
             localStorage.setItem(STORAGE_KEY, rawText);
             state.isSyncing = false;
@@ -158,6 +187,21 @@ export function syncRenderedToRaw(standardTurndown, updateCounter) {
 
     const clone = dom.renderedOutput.cloneNode(true);
 
+    // KUNCI PERBAIKAN SINKRONISASI: Ganti komponen pembungkus matematika dengan kode LaTeX mentah murni
+    clone.querySelectorAll('.math-wrapper').forEach(wrapper => {
+        const rawEl = wrapper.querySelector('.math-raw');
+        const rawText = rawEl ? rawEl.innerText.trim() : '';
+        wrapper.parentNode.replaceChild(document.createTextNode(rawText), wrapper);
+    });
+
+    // KUNCI PERBAIKAN SINKRONISASI: Ganti komponen HR interaktif dengan penanda Markdown aslinya
+    clone.querySelectorAll('.hr-wrapper').forEach(wrapper => {
+        const rawEl = wrapper.querySelector('.hr-raw');
+        const rawText = rawEl ? rawEl.innerText.trim() : '---';
+        wrapper.parentNode.replaceChild(document.createTextNode('\n\n' + rawText + '\n\n'), wrapper);
+    });
+
+    // Cadangan pembersihan MathJax mjx-container reguler jika ada yang terlewat
     clone.querySelectorAll('mjx-container').forEach(node => {
         const rawTex = node.getAttribute('data-raw-tex');
         const isDisplay = node.getAttribute('data-math-display') === 'true';

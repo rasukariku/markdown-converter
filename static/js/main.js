@@ -15,7 +15,8 @@ import { openWin, closeWin } from './ui/modals.js';
 import { applyLanguage, translations } from './ui/language.js';
 import { initializeFormatCycle, checkToolbarActive } from './ui/toolbar.js';
 
-// KUNCI PERBAIKAN: Impor file tema agar fungsionalitas Dark/Light toggle aktif sepenuhnya
+// KUNCI PERBAIKAN: Impor modul Obsidian-Style Live Preview dan Tema
+import { initializeLivePreview } from './editor/live-preview.js';
 import './ui/theme.js';
 
 // =====================================================================
@@ -35,9 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     const boundSyncRenderedToRaw = () => syncRenderedToRaw(standardTurndown, updateCounter);
 
-    // 3. KUNCI PERBAIKAN: Ekspos Jembatan Fungsi ke Global Scope Secepat Mungkin.
-    // Ini mengeliminasi timing bug / race condition sehingga inline onclick handlers 
-    // pada HTML aman digunakan langsung sejak DOM siap, tanpa terpengaruh delay plugin.
+    // 3. Ekspos Jembatan Fungsi ke Global Scope Secepat Mungkin.
     window.formatDoc = boundFormatDoc;
     window.toggleFullscreen = toggleFullscreen;
     window.insertHorizontalRule = () => insertHorizontalRule(boundFormatDoc);
@@ -46,21 +45,25 @@ document.addEventListener('DOMContentLoaded', () => {
     window.openWin = openWin;
     window.closeWin = closeWin;
     window.resetTypewriter = resetTypewriter;
+    
+    // KUNCI PERBAIKAN: Sediakan jembatan global sinkronisasi untuk dipanggil oleh modul Live Preview
+    window.triggerSync = boundSyncRenderedToRaw;
 
     // 4. Daftarkan Event Listener Utama pada Input Editor
     dom.rawMarkdownInput.addEventListener('input', () => syncRawToRendered(updateCounter));
     dom.renderedOutput.addEventListener('input', boundSyncRenderedToRaw);
 
-    // 5. Inisialisasi Seluruh Modul Fitur & Dialog
+    // 5. Inisialisasi Seluruh Modul Fitur, Live Preview & Dialog
     initializeDialogs(boundFormatDoc);
     initializeFindReplace(boundFormatDoc, boundSyncRenderedToRaw);
     initializePasteInterceptors(standardTurndown, updateCounter);
-    initializeClipboard(); // Kunci Perbaikan: Sekarang aman dipanggil karena modul mengekspor fungsi ini
+    initializeClipboard();
     initializeTables(boundSyncRenderedToRaw);
     initializeExport(dedicatedExportTurndown, boundSyncRenderedToRaw, updateCounter);
     initializeDrag();
     initializeAutosave(boundSyncRenderedToRaw, updateCounter);
     initializeFormatCycle();
+    initializeLivePreview(); // Kunci Perbaikan: Jalankan delegasi event interaksi edit matematika
 
     // 6. Daftarkan Handler Tombol Raw Markdown Modal secara Manual
     document.getElementById('btn-open-raw').onclick = () => {
