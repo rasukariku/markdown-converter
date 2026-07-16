@@ -41,33 +41,40 @@ function decodeHtmlEntities(text) {
 }
 
 /**
- * Membuat struktur markup pembungkus interaktif matematika Obsidian-Style.
+ * Membuat komponen berdampingan (Sibling-Based) untuk input teks mentah dan kartu pratinjau rumus.
+ * Menghilangkan nesting contenteditable="false" yang merusak fungsionalitas kursor teks browser.
  * 
  * @param {string} mathContent - Teks LaTeX matematika mentah.
  * @param {boolean} isDisplay - Penanda jenis block (display math) atau inline math.
- * @returns {string} Untaian elemen HTML pembungkus interaktif.
+ * @returns {string} Markup HTML terpisah.
  */
 function createInteractiveMathWrapper(mathContent, isDisplay) {
     const cleanContent = mathContent.trim();
-    const wrapperClass = isDisplay ? 'math-wrapper display-math-wrapper' : 'math-wrapper inline-math-wrapper';
-    const displayAttr = isDisplay ? 'true' : 'false';
-    const rawLaTeX = isDisplay ? `$$${cleanContent}$$` : `$${cleanContent}$`;
+    const rawLaTeX = isDisplay ? `$$ ${cleanContent} $$` : `$${cleanContent}$`;
+    const displayClass = isDisplay ? 'display-math-raw' : 'inline-math-raw';
 
-    return `
-        <span class="${wrapperClass}" contenteditable="false" data-math-display="${displayAttr}">
-            <span class="math-raw" contenteditable="true">${rawLaTeX}</span>
-            <span class="math-preview">${rawLaTeX}</span>
-            <span class="math-toolbar">
-                <button type="button" class="math-toolbar-btn math-copy-btn" title="Copy LaTeX">📋 Copy</button>
-                <button type="button" class="math-toolbar-btn math-code-toggle" title="Toggle Code">&lt;/&gt;</button>
+    if (isDisplay) {
+        return `
+            <p class="math-raw-line ${displayClass}" contenteditable="true">${rawLaTeX}</p>
+            <div class="math-preview-card" contenteditable="false">
+                <div class="math-preview-rendered">${rawLaTeX}</div>
+                <button type="button" class="math-code-toggle">&lt;/&gt;</button>
+            </div>
+        `.trim();
+    } else {
+        return `
+            <span class="math-raw-line ${displayClass}" contenteditable="true">${rawLaTeX}</span>
+            <span class="math-preview-card" contenteditable="false">
+                <span class="math-preview-rendered">${rawLaTeX}</span>
+                <button type="button" class="math-code-toggle" style="display:none;">&lt;/&gt;</button>
             </span>
-        </span>
-    `.trim();
+        `.trim();
+    }
 }
 
 /**
  * Melindungi blok matematika dari parser Marked Markdown (Obsidian-Style Parser).
- * KUNCI PERBAIKAN: Mengintegrasikan komponen interaktif penyuntingan LaTeX di tempat (Live Preview).
+ * KUNCI PERBAIKAN: Mengisolasi formula matematika sebelum Marked berjalan menggunakan markup berdampingan.
  * 
  * @param {string} text - Teks Markdown input mentah.
  * @returns {string} HTML hasil render dengan komponen interaktif terintegrasi.
@@ -85,7 +92,7 @@ export function parseMarkdownWithMath(text) {
         return placeholder;
     });
 
-    // 2. Proteksi & Konstruksi Inline Math ($...$) bebas lookbehind demi performa browser maksimal
+    // 2. Proteksi & Konstruksi Inline Math ($...$) bebas lookbehind untuk kompatibilitas WebKit/Safari
     processedText = processedText.replace(/\$([^\$\s\n](?:[^\$\n]*?[^\$\s\n])?)\$/g, (match, math) => {
         const placeholder = `@@@MATH_INLINE_${mathBlocks.length}@@@`;
         const wrapper = createInteractiveMathWrapper(math, false);
@@ -101,12 +108,10 @@ export function parseMarkdownWithMath(text) {
         parsedHTML = parsedHTML.split(placeholder).join(wrapper);
     });
 
-    // 5. KUNCI PERBAIKAN: Konversi tag <hr> statis menjadi komponen HR interaktif Obsidian-Style
+    // 5. KUNCI PERBAIKAN: Konversi tag <hr> statis menjadi komponen HR interaktif Obsidian-Style berdampingan
     parsedHTML = parsedHTML.replace(/<hr\s*\/?>/gi, `
-        <div class="hr-wrapper" contenteditable="false">
-            <span class="hr-raw" contenteditable="true">---</span>
-            <div class="hr-line"></div>
-        </div>
+        <div class="hr-raw-line" contenteditable="true">---</div>
+        <div class="hr-preview-line" contenteditable="false"></div>
     `.trim());
 
     return parsedHTML;
@@ -170,7 +175,6 @@ export function syncRawToRendered(updateCounter) {
             dom.renderedOutput.querySelectorAll('mjx-container').forEach(node => {
                 node.setAttribute('contenteditable', 'false');
             });
-            // HR dinamis ditangani terpisah oleh parseMarkdownWithMath, tidak perlu timpa style hr statis
             updateCounter();
             localStorage.setItem(STORAGE_KEY, rawText);
             state.isSyncing = false;
@@ -187,21 +191,23 @@ export function syncRenderedToRaw(standardTurndown, updateCounter) {
 
     const clone = dom.renderedOutput.cloneNode(true);
 
-    // KUNCI PERBAIKAN SINKRONISASI: Ganti komponen pembungkus matematika dengan kode LaTeX mentah murni
-    clone.querySelectorAll('.math-wrapper').forEach(wrapper => {
-        const rawEl = wrapper.querySelector('.math-raw');
-        const rawText = rawEl ? rawEl.innerText.trim() : '';
-        wrapper.parentNode.replaceChild(document.createTextNode(rawText), wrapper);
+    // KUNCI PERBAIKAN SINKRONISASI: Hapus semua visual preview card pembantu sebelum konversi markdown
+    clone.querySelectorAll('.math-preview-card').forEach(card => card.remove());
+    clone.querySelectorAll('.hr-preview-line').forEach(line => line.remove());
+
+    // KUNCI PERBAIKAN SINKRONISASI: Kembalikan teks asli dari kotak raw matematika murni
+    clone.querySelectorAll('.math-raw-line').forEach(rawLine => {
+        const rawText = rawLine.innerText.trim();
+        rawLine.parentNode.replaceChild(document.createTextNode(rawText), rawLine);
     });
 
-    // KUNCI PERBAIKAN SINKRONISASI: Ganti komponen HR interaktif dengan penanda Markdown aslinya
-    clone.querySelectorAll('.hr-wrapper').forEach(wrapper => {
-        const rawEl = wrapper.querySelector('.hr-raw');
-        const rawText = rawEl ? rawEl.innerText.trim() : '---';
-        wrapper.parentNode.replaceChild(document.createTextNode('\n\n' + rawText + '\n\n'), wrapper);
+    // KUNCI PERBAIKAN SINKRONISASI: Kembalikan teks pembatas asli dari kotak raw pemisah
+    clone.querySelectorAll('.hr-raw-line').forEach(rawLine => {
+        const rawText = rawLine.innerText.trim();
+        rawLine.parentNode.replaceChild(document.createTextNode('\n\n' + rawText + '\n\n'), rawLine);
     });
 
-    // Cadangan pembersihan MathJax mjx-container reguler jika ada yang terlewat
+    // Cadangan pembersihan MathJax mjx-container jika ada yang terlewat di luar wrapper
     clone.querySelectorAll('mjx-container').forEach(node => {
         const rawTex = node.getAttribute('data-raw-tex');
         const isDisplay = node.getAttribute('data-math-display') === 'true';

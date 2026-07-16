@@ -171,181 +171,143 @@ Obsidian-like Document Typography
 }
 
 /* =====================================================================
-   Obsidian-Style Live Preview (Math & HR Interactive Wrappers)
+   Obsidian-Style Live Preview (Math & HR Sibling-Based Layout)
    ===================================================================== */
-.math-wrapper {
-    position: relative;
-    display: inline-block;
-    vertical-align: middle;
-    width: 100%;
-    box-sizing: border-box;
-}
 
-.display-math-wrapper {
-    display: block;
-    width: 100%;
-    text-align: center;
-    margin: 24px 0;
-}
-
-/* Area input raw rumus LaTeX bertema gelap Obsidian - Tampil di ATAS preview rumus */
-.math-raw {
+/* 1. Baris Kode LaTeX Mentah - Berdiri mandiri secara vertikal di atas preview */
+.math-raw-line {
     display: none; /* Disembunyikan saat visual preview aktif */
     font-family: 'Consolas', 'Courier New', monospace !important;
-    font-size: 14px;
-    color: #f1739c !important; /* Warna pinkish-purple sesuai tangkapan layar 2 */
-    background-color: #1e1e2e; /* Dark editor background */
+    font-size: 14.5px;
+    color: #f1739c !important; /* Warna pinkish-purple sesuai tangkapan layar */
+    background-color: #1e1e2e; /* Editor bertema gelap Obsidian */
     padding: 10px 14px;
     border-radius: 6px;
-    border: 1px solid var(--border-color);
-    white-space: pre-wrap;
-    word-break: break-all;
+    border-left: 3px solid #8b5cf6; /* Garis vertikal ungu elegan di sisi kiri */
     outline: none;
-    margin-bottom: 12px;
+    margin: 12px 0;
     width: 100%;
     box-sizing: border-box;
-    caret-color: #c084fc; /* Warna kursor ungu indah sesuai tangkapan layar 2 */
+    caret-color: #c084fc; /* Warna kursor ungu indah */
 }
 
-.math-raw.active {
+.math-raw-line.active {
     display: block;
-    border-color: #8b5cf6;
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
 }
 
-.math-raw::selection,
-.math-raw *::selection {
-    background-color: rgba(139, 92, 246, 0.3) !important;
+.math-raw-line::selection,
+.math-raw-line *::selection {
+    background-color: rgba(139, 92, 246, 0.35) !important;
     color: inherit !important;
 }
 
-/* Preview Visual Render Persamaan Matematika */
-.math-preview {
-    cursor: pointer;
-    transition: background-color 0.2s, border-color 0.2s;
-    padding: 20px;
-    border-radius: 8px;
-    border: 1.5px solid transparent;
-    display: block;
+/* 2. Kartu Preview Rumus - Berada berdampingan di bawah baris kode LaTeX */
+.math-preview-card {
     position: relative;
-    background-color: rgba(128, 128, 128, 0.03);
+    display: block;
+    background-color: rgba(128, 128, 128, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 12px 0;
+    text-align: center;
+    transition: border-color 0.2s, background-color 0.2s;
 }
 
-.display-math-wrapper .math-preview {
-    background-color: rgba(128, 128, 128, 0.03);
-    margin: auto;
-}
-
-/* KUNCI PERBAIKAN: Efek hover dan fokus batas ungu melingkar pada preview rumus aktif */
-.math-wrapper.active-preview .math-preview {
-    border-color: #8b5cf6;
+.math-preview-card:hover {
     background-color: rgba(139, 92, 246, 0.02);
+    border-color: rgba(139, 92, 246, 0.3);
 }
 
-/* KUNCI PERBAIKAN: Sisipkan ikon lingkaran centang biru di sudut kanan bawah preview rumus aktif */
-.math-wrapper.active-preview .math-preview::after {
-    content: '✓';
+.math-preview-rendered {
+    display: block;
+    margin: auto;
+    cursor: pointer;
+}
+
+/* Tombol Toggle Kode di Sisi Kanan Kartu Preview */
+.math-code-toggle {
     position: absolute;
-    bottom: 12px;
+    top: 10px;
     right: 12px;
-    width: 18px;
-    height: 18px;
-    background-color: #3b82f6;
-    color: white;
-    border-radius: 50%;
-    font-size: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-}
-
-/* Toolbar melayang di atas area rumus matematika */
-.math-toolbar {
-    display: none;
-    position: absolute;
-    top: -16px;
-    right: 12px;
-    background-color: #1e1e2e;
-    border: 1px solid #3e4446;
-    border-radius: 6px;
-    padding: 4px;
-    gap: 6px;
-    z-index: 100;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    align-items: center;
-}
-
-/* Tampilkan toolbar melayang saat preview aktif atau di-hover */
-.math-wrapper.active-preview .math-toolbar,
-.math-wrapper:hover .math-toolbar {
-    display: flex;
-}
-
-.math-toolbar-btn {
     background: transparent;
     border: none;
-    color: #a0a0a0;
-    padding: 4px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: 4px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: bold;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
     transition: background-color 0.15s, color 0.15s;
 }
 
-.math-toolbar-btn:hover {
-    background-color: #3e4446;
-    color: #ffffff;
+.math-code-toggle:hover {
+    background-color: var(--btn-tool-hover);
+    color: var(--text-main);
 }
 
-/* Interactive HR Styles (Obsidian-Style) */
-.hr-wrapper {
-    position: relative;
-    margin: 28px 0;
-    cursor: pointer;
-    width: 100%;
-    display: block;
-}
-
-/* Input raw markdown pemisah (--- atau ***) */
-.hr-raw {
+/* Gaya Formula Inline Berdampingan */
+span.math-raw-line {
     display: none;
+    padding: 2px 6px;
+    border-left: 2px solid #8b5cf6;
+    width: auto;
+}
+
+span.math-raw-line.active {
+    display: inline-block;
+}
+
+span.math-preview-card {
+    display: inline-block;
+    padding: 2px 8px;
+    margin: 0 2px;
+    vertical-align: middle;
+    border-radius: 4px;
+    background-color: rgba(128, 128, 128, 0.04);
+    border: 1px solid var(--border-color);
+}
+
+/* Sembunyikan tombol toggle kode untuk rumus inline agar ringkas */
+span.math-preview-card .math-code-toggle {
+    display: none;
+}
+
+/* 3. Garis Pemisah Interaktif (HR Sibling) */
+.hr-raw-line {
+    display: none; /* Sembunyikan secara default; tampilkan saat diklik */
     font-family: 'Consolas', 'Courier New', monospace !important;
-    font-size: 14px;
+    font-size: 14.5px;
     color: #c084fc !important;
     background-color: #1e1e2e;
-    padding: 4px 10px;
+    padding: 6px 14px;
     border-radius: 5px;
     border: 1px solid var(--border-color);
     outline: none;
-    margin-bottom: 8px;
+    margin: 12px 0;
     width: max-content;
-    min-width: 60px;
+    min-width: 80px;
     caret-color: #c084fc;
 }
 
-.hr-raw.active {
+.hr-raw-line.active {
     display: inline-block;
-    border-color: #8b5cf6;
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
 }
 
 /* KUNCI PERBAIKAN: Sembunyikan garis visual secara total saat teks raw penyunting pembatas aktif */
-.hr-raw.active ~ .hr-line {
+.hr-raw-line.active ~ .hr-preview-line {
     display: none !important;
 }
 
-.hr-line {
+.hr-preview-line {
     width: 100%;
     height: 2px;
     background-color: var(--border-color);
+    margin: 28px 0;
+    cursor: pointer;
     transition: background-color 0.2s;
 }
 
-.hr-wrapper:hover .hr-line {
+.hr-preview-line:hover {
     background-color: #8b5cf6;
 }
