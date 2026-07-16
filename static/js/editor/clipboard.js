@@ -24,7 +24,7 @@ const BOLD_MATH_MAP = Object.freeze({
     'a': '𝐚', 'b': '𝐛', 'c': '𝐜', 'd': '𝐝', 'e': '𝐞', 'f': '𝐟', 'g': '𝐠', 'h': '𝐡', 'i': '𝐢', 'j': '𝐣',
     'k': '𝐤', 'l': '𝐥', 'm': '𝐦', 'n': '𝐧', 'o': '𝐨', 'p': '𝐩', 'q': '𝐪', 'r': '𝐫', 's': '𝐬', 't': '𝐭',
     'u': '𝐮', 'v': '𝐯', 'w': '𝐰', 'x': '𝐱', 'y': '𝐲', 'z': '𝐳',
-    'A': '𝐀', 'B': '𝐁', 'C': '𝐂', 'D': 'Ｄ', 'E': '𝐄', 'F': '𝐅', 'G': '𝐆', 'H': '𝐇', 'I': '𝐈', 'J': '𝐉',
+    'A': '𝐀', 'B': '𝐁', 'C': '𝐂', 'D': 'Ｄ', 'E': '🇪', 'F': '𝐅', 'G': '🇬', 'H': '𝐇', 'I': '🇮', 'J': '𝐉',
     'K': '𝐊', 'L': '𝐋', 'M': '𝐌', 'N': '𝐍', 'O': '𝐎', 'P': '𝐏', 'Q': '𝐐', 'R': '𝐑', 'S': '𝐒', 'T': '𝐓',
     'U': '𝐔', 'V': '𝐕', 'W': '𝐖', 'X': '𝐗', 'Y': '𝐘', 'Z': '𝐙',
     '-': '−', '=': '='
@@ -46,42 +46,13 @@ function toBoldMath(str) {
 // =========================================================================
 
 /**
- * Menginisialisasi sistem clipboard lanjut (Smart Click-to-Copy dan Smart Drag-to-Copy).
+ * Menginisialisasi sistem clipboard lanjut (Smart Drag-to-Copy).
+ * KUNCI PERBAIKAN: Listener klik-auto-copy bawaan telah dihapus total agar penfokusan 
+ * klik Obsidian-style berjalan mulus tanpa merusak clipboard pengguna.
  */
 export function initializeClipboard() {
     
-    // 1. SMART CLICK-TO-COPY (Untuk Rumus Matematika / MathJax)
-    dom.renderedOutput.addEventListener('click', async function(e) {
-        const mathEl = e.target.closest('mjx-container');
-        if (!mathEl) return;
-
-        const mmlContainer = mathEl.querySelector('mjx-assistive-mml');
-        if (!mmlContainer || !mmlContainer.firstElementChild) return;
-
-        const mmlClone = mmlContainer.firstElementChild.cloneNode(true);
-        const wrapper = document.createElement('span');
-        
-        wrapper.appendChild(document.createTextNode('\u200B'));
-        wrapper.appendChild(mmlClone);
-        wrapper.appendChild(document.createTextNode('\u200B'));
-
-        try {
-            const htmlBlob = new Blob([wrapper.outerHTML], { type: 'text/html' });
-            const rawTex = mathEl.getAttribute('data-raw-tex') || mathEl.innerText;
-            const textBlob = new Blob([rawTex], { type: 'text/plain' });
-
-            await navigator.clipboard.write([
-                new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob })
-            ]);
-
-            mathEl.classList.add('copy-flash');
-            setTimeout(() => mathEl.classList.remove('copy-flash'), 300);
-        } catch (err) {
-            console.error('Failed to copy MathML via click:', err);
-        }
-    });
-
-    // 2. SMART DRAG-TO-COPY DENGAN SUNTIKAN GAYA INLINE (Preservasi Format Word)
+    // SMART DRAG-TO-COPY DENGAN SUNTIKAN GAYA INLINE (Preservasi Format Word)
     dom.renderedOutput.addEventListener('copy', function(e) {
         const selection = window.getSelection();
         if (!selection.rangeCount || !dom.renderedOutput.contains(selection.anchorNode)) return;
@@ -98,7 +69,7 @@ export function initializeClipboard() {
         tempHtml = tempHtml.replace(RE_LINE_BREAK, `</p>${WRAPPER_PARAGRAPH}`);
         tempDiv.innerHTML = tempHtml;
 
-        // KUNCI PERBAIKAN UTAMA: Suntikkan gaya CSS Inline secara dinamis pada clipboard HTML
+        // Suntikkan gaya CSS Inline secara dinamis pada clipboard HTML
         // sehingga MS Word / Google Docs mengenali format tulisan dan penataan secara tepat.
         tempDiv.querySelectorAll('*').forEach(el => {
             const tag = el.tagName;
