@@ -42,8 +42,7 @@ function decodeHtmlEntities(text) {
 
 /**
  * Membuat komponen pembungkus matematika Obsidian-style.
- * KUNCI PERBAIKAN: Karakter penanda dollar ditiadakan dari isi DOM teks .math-raw-line
- * dan didelegasikan ke CSS attr() untuk mencegah MathJax memicu render duplikat.
+ * KUNCI PERBAIKAN: Rumus inline dipisahkan tanpa kartu preview agar mengalir rapi di dalam baris kalimat.
  */
 function createInteractiveMathWrapper(mathContent, isDisplay) {
     const cleanContent = mathContent.trim();
@@ -52,25 +51,33 @@ function createInteractiveMathWrapper(mathContent, isDisplay) {
     const displayAttr = isDisplay ? 'true' : 'false';
     const delim = isDisplay ? '$$' : '$';
 
-    // Preview tetap menggunakan delimiters penuh agar dikenali oleh MathJax compiler
-    const previewLaTeX = isDisplay ? `$$ ${cleanContent} $$` : `$${cleanContent}$`;
-
-    return `
-        <span class="${wrapperClass}" contenteditable="false" data-math-display="${displayAttr}">
-            <span class="math-raw-line ${displayClass}" contenteditable="true" data-delimiter-left="${delim}" data-delimiter-right="${delim}">${cleanContent}</span>
-            <span class="math-preview-card" contenteditable="false">
-                <span class="math-preview-rendered">${previewLaTeX}</span>
-                <span class="math-toolbar">
-                    <button type="button" class="math-toolbar-btn math-copy-btn" title="Copy LaTeX">📋 Copy</button>
-                    <button type="button" class="math-toolbar-btn math-code-toggle" title="Toggle Code">&lt;/&gt;</button>
-                </span>
+    if (isDisplay) {
+        // Display Math: Menggunakan kartu preview besar dengan tombol kontrol penuh
+        return `
+            <div class="${wrapperClass}" contenteditable="false" data-math-display="${displayAttr}">
+                <p class="math-raw-line ${displayClass}" contenteditable="true" data-delimiter-left="${delim}" data-delimiter-right="${delim}">${cleanContent}</p>
+                <div class="math-preview-card" contenteditable="false">
+                    <div class="math-preview-rendered">$$ ${cleanContent} $$</div>
+                    <div class="math-toolbar">
+                        <button type="button" class="math-toolbar-btn math-copy-btn" title="Copy LaTeX">📋 Copy</button>
+                        <button type="button" class="math-toolbar-btn math-code-toggle" title="Toggle Code">&lt;/&gt;</button>
+                    </div>
+                </div>
+            </div>
+        `.trim();
+    } else {
+        // Inline Math: Sangat ringan, tanpa kartu preview atau tombol melayang agar mengalir selaras teks kalimat
+        return `
+            <span class="${wrapperClass}" contenteditable="false" data-math-display="${displayAttr}">
+                <span class="math-raw-line ${displayClass}" contenteditable="true" data-delimiter-left="${delim}" data-delimiter-right="${delim}">${cleanContent}</span>
+                <span class="math-preview-rendered" style="cursor: pointer;">$${cleanContent}$</span>
             </span>
-        </span>
-    `.trim();
+        `.trim();
+    }
 }
 
 /**
- * Melindungi blok matematika dari parser Marked Markdown (Obsidian-Style Parser).
+ * Melindungi blok matematika & garis pembatas dari parser Marked Markdown (Obsidian-Style Parser).
  * 
  * @param {string} text - Teks Markdown input mentah.
  * @returns {string} HTML hasil render dengan komponen interaktif terintegrasi.
@@ -96,46 +103,37 @@ export function parseMarkdownWithMath(text) {
         return placeholder;
     });
 
-    // 3. Jalankan parser Markdown Marked pada teks terisolasi
+    // 3. KUNCI PERBAIKAN: Proteksi pembatas garis (HR) sebelum Marked berjalan agar terdeteksi sempurna walau di dalam list
+    processedText = processedText.replace(/(?m)^([ \t]*)(-{3,}|\*{3,}|_{3,})[ \t]*$/g, (match, indent, chars) => {
+        const placeholder = `@@@HR_PH_${mathBlocks.length}@@@`;
+        const indentWidth = indent ? indent.length * 8 : 0;
+        const wrapper = `
+            <div class="hr-wrapper" contenteditable="false" style="margin-left: ${indentWidth}px;">
+                <div class="hr-raw-line" contenteditable="true">${chars}</div>
+                <div class="hr-preview-line" contenteditable="false"></div>
+            </div>
+        `.trim();
+        mathBlocks.push({ placeholder, wrapper });
+        return placeholder;
+    });
+
+    // 4. Jalankan parser Markdown Marked pada teks terisolasi
     let parsedHTML = marked.parse(processedText);
 
-    // 4. Kembalikan komponen matematika interaktif ke dalam HTML hasil parse dengan metode split-join
+    // 5. Kembalikan komponen matematika & HR interaktif ke dalam HTML hasil parse dengan metode split-join
     mathBlocks.forEach(({ placeholder, wrapper }) => {
         parsedHTML = parsedHTML.split(placeholder).join(wrapper);
     });
 
-    // 5. Konversi tag <hr> statis menjadi komponen HR interaktif Obsidian-Style
+    // Cadangan konversi tag <hr> statis sisa jika ada yang terlewat
     parsedHTML = parsedHTML.replace(/<hr\s*\/?>/gi, `
-        <div class="hr-raw-line" contenteditable="true">---</div>
-        <div class="hr-preview-line" contenteditable="false"></div>
+        <div class="hr-wrapper" contenteditable="false">
+            <div class="hr-raw-line" contenteditable="true">---</div>
+            <div class="hr-preview-line" contenteditable="false"></div>
+        </div>
     `.trim());
 
     return parsedHTML;
-}
-
-export function sanitizeAIText(plainData) {
-    plainData = plainData.replace(RE_SPECIAL_CHARS, ' ');
-    plainData = plainData.replace(RE_CRLF, '\n');
-    plainData = plainData.replace(RE_CR, '\n');
-    plainData = plainData.replace(RE_AI_BOLD_LIST, '$1 **$2**');
-    plainData = plainData.replace(RE_AI_BOLD_LIST_END, '$1 ');
-    plainData = plainData.replace(RE_HR_INLINE, '$1\n\n$2\n\n');
-    plainData = plainData.replace(RE_HR_START, '\n\n$1\n\n$2');
-    plainData = plainData.replace(RE_HR_STANDALONE, '\n\n---\n\n');
-
-    let processedText = plainData.replace(RE_INLINE_MATH, (m) => '$' + m.slice(2, -2).trim() + '$');
-    processedText = processedText.replace(RE_DISPLAY_MATH, (m) => '$$' + m.slice(2, -2).trim() + '$$');
-    processedText = processedText.replace(RE_BOLD_MATH, '$1\\mathbf{$2}$1');
-
-    processedText = processedText.replace(RE_MATH_CONTENT, (match, dollar, mathContent) => {
-        let cleanMath = mathContent;
-        cleanMath = cleanMath.replace(RE_MATH_BOLD, '\\mathbf{$1}');
-        cleanMath = cleanMath.replace(RE_MATH_FRAC, '\\frac{$1}{$2}');
-        cleanMath = cleanMath.replace(RE_MATH_SPACES, ' ');
-        return dollar + cleanMath + dollar;
-    });
-
-    return processedText.replace(RE_EXCESS_NEWLINES, '\n\n');
 }
 
 export function syncRawToRendered(updateCounter) {
@@ -191,7 +189,7 @@ export function syncRenderedToRaw(standardTurndown, updateCounter) {
     clone.querySelectorAll('.math-preview-card').forEach(card => card.remove());
     clone.querySelectorAll('.hr-preview-line').forEach(line => line.remove());
 
-    // KUNCI PERBAIKAN SINKRONISASI: Kembalikan teks asli dengan merakit kembali delimiters dollar ($ atau $$) secara dinamis
+    // KUNCI PERBAIKAN SINKRONISASI: Kembalikan teks asli dengan merakit delimiters dollar ($ atau $$) secara dinamis
     clone.querySelectorAll('.math-raw-line').forEach(rawLine => {
         const rawText = rawLine.innerText.trim();
         const isDisplay = rawLine.classList.contains('display-math-raw');
