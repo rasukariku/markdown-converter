@@ -67,18 +67,24 @@ export function initializeExport(dedicatedExportTurndown, syncRenderedToRaw, upd
     dom.universalMarkdownInput.addEventListener('input', function() {
         const rawText = dom.universalMarkdownInput.value;
         
-        // KUNCI PERBAIKAN: Gunakan parser matematika universal yang aman dari stripping backslash
+        // Gunakan parser matematika universal yang aman dari stripping backslash
         const parsedHTML = parseMarkdownWithMath(rawText);
         
         dom.renderedOutput.innerHTML = parsedHTML;
         
-        MathJax.typesetPromise([dom.renderedOutput]).then(() => {
-            dom.renderedOutput.querySelectorAll('mjx-container').forEach(node => {
-                node.setAttribute('contenteditable', 'false');
+        // KUNCI PERBAIKAN: Berikan pengaman asinkronisasi (Null-Safety) untuk ekspor universal modal
+        if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+            window.MathJax.typesetPromise([dom.renderedOutput]).then(() => {
+                dom.renderedOutput.querySelectorAll('mjx-container').forEach(node => {
+                    node.setAttribute('contenteditable', 'false');
+                });
+                updateCounter();
+                syncRenderedToRaw();
             });
+        } else {
             updateCounter();
             syncRenderedToRaw();
-        });
+        }
     });
 
     // Aksi Klik: Salin hasil ekspor ke Clipboard

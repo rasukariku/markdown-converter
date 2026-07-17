@@ -32,7 +32,7 @@ export function initializePasteInterceptors(standardTurndown, updateCounter) {
         // Lakukan sanitasi AI pada teks biasa yang ditempelkan
         const processedText = sanitizeAIText(plainData);
         
-        // KUNCI PERBAIKAN: Gunakan parser isolasi matematika universal untuk merender HTML secara aman
+        // Gunakan parser isolasi matematika universal untuk merender HTML secara aman
         const parsedHTML = parseMarkdownWithMath(processedText);
         
         document.execCommand('insertHTML', false, parsedHTML);
@@ -45,14 +45,19 @@ export function initializePasteInterceptors(standardTurndown, updateCounter) {
                 if (el.style.lineHeight) el.style.lineHeight = '';
             });
             
-            // Format ulang MathJax kontainer agar rapi dan tidak contenteditable
-            MathJax.typesetPromise([dom.renderedOutput]).then(() => {
-                dom.renderedOutput.querySelectorAll('mjx-container').forEach((node) => { 
-                    node.setAttribute('contenteditable', 'false'); 
+            // KUNCI PERBAIKAN: Berikan pengaman asinkronisasi (Null-Safety) untuk merender MathJax saat aktivitas paste
+            if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+                window.MathJax.typesetPromise([dom.renderedOutput]).then(() => {
+                    dom.renderedOutput.querySelectorAll('mjx-container').forEach((node) => { 
+                        node.setAttribute('contenteditable', 'false'); 
+                    });
+                    updateCounter(); 
+                    syncRenderedToRaw(standardTurndown, updateCounter); 
                 });
+            } else {
                 updateCounter(); 
                 syncRenderedToRaw(standardTurndown, updateCounter); 
-            });
+            }
         }, PASTE_SYNC_DELAY_MS);
     });
 

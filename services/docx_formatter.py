@@ -284,5 +284,5 @@ def _process_tables(doc: Document) -> None:
         tbl_element = table._element
         next_element = tbl_element.getnext()
         if next_element is not None and next_element.tag == qn('w:p'):
-            next_para = Paragraph(next_element, doc._body)
+            next_para = Paragraph(next_element, doc)
             next_para.paragraph_format.space_before = Pt(8)

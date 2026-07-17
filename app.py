@@ -1,5 +1,6 @@
 import os
 import tempfile
+import platform
 import pypandoc
 from flask import Flask, request, send_file, render_template
 from docx import Document
@@ -8,17 +9,29 @@ from utils.file_manager import get_buffer_and_cleanup
 from services.docx_formatter import format_docx_document
 from services.pdf_generator import generate_pdf_from_docx
 
-# Pastikan pypandoc langsung merujuk ke biner pandoc sistem yang diinstal saat Docker Build
-os.environ.setdefault('PYPANDOC_PANDOC', '/usr/bin/pandoc')
+# 1. Tentukan path pandoc hanya jika berjalan di sistem Linux/Docker Hugging Face
+if platform.system() == 'Linux':
+    os.environ.setdefault('PYPANDOC_PANDOC', '/usr/bin/pandoc')
 
-# Inisialisasi Pandoc saat aplikasi dinyalakan (Tanpa download otomatis saat runtime)
-# KUNCI PERBAIKAN: Ditulis dengan output error log yang sangat transparan agar Gunicorn preload dapat menangkap kesalahan dengan cepat jika terjadi
+# 2. KUNCI PERBAIKAN: Deteksi ketersediaan Pandoc secara adaptif & lintas-platform
 try:
     version = pypandoc.get_pandoc_version()
     print(f"[INFO] Pandoc berhasil dimuat. Versi: {version}", flush=True)
 except OSError as e:
-    print(f"[FATAL ERROR] Biner Pandoc tidak ditemukan di sistem. Harap verifikasi instalasi Dockerfile. Detail: {str(e)}", flush=True)
-    raise e
+    # Jika berjalan di Windows lokal, unduh Pandoc otomatis secara aman
+    if platform.system() == 'Windows':
+        print("[INFO] Pandoc tidak ditemukan secara lokal. Mengunduh Pandoc untuk Windows...", flush=True)
+        try:
+            pypandoc.download_pandoc()
+            version = pypandoc.get_pandoc_version()
+            print(f"[INFO] Pandoc berhasil diunduh dan dipasang secara lokal. Versi: {version}", flush=True)
+        except Exception as download_err:
+            print(f"[FATAL ERROR] Gagal mengunduh Pandoc secara otomatis pada Windows: {str(download_err)}", flush=True)
+            raise download_err
+    else:
+        # Jika di Docker/Linux, lempar error asli karena dilarang keras mengunduh saat runtime
+        print(f"[FATAL ERROR] Biner Pandoc tidak ditemukan di sistem Linux/Docker. Detail: {str(e)}", flush=True)
+        raise e
 
 app = Flask(__name__)
 
