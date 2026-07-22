@@ -27,7 +27,10 @@ const BOLD_MATH_MAP = Object.freeze({
 });
 
 /**
- * Convert standard alphanumeric strings into mathematical bold representations.
+ * Converts standard alphanumeric strings into mathematical bold representations.
+ * 
+ * @param {string} str - Input text string.
+ * @returns {string} String transformed with Unicode bold math characters.
  */
 function toBoldMath(str) {
     if (!str) return str;
@@ -39,11 +42,12 @@ function toBoldMath(str) {
 // =========================================================================
 
 /**
- * Initializes clipboard operations, keeping only selection-copy formats.
+ * Initializes clipboard operations with dual-payload generation:
+ * - text/html: Native Word/Google Docs HTML with inline styles and MathML Unicode transformation.
+ * - text/plain: Clean Markdown with raw LaTeX delimiters ($...$ and $$...$$) for WhatsApp/Notion.
  */
 export function initializeClipboard() {
     
-    // SMART DRAG-TO-COPY with strict inline style conversion (Microsoft Word compatibility)
     dom.renderedOutput.addEventListener('copy', function(e) {
         const selection = window.getSelection();
         if (!selection.rangeCount || !dom.renderedOutput.contains(selection.anchorNode)) return;
@@ -55,10 +59,50 @@ export function initializeClipboard() {
         const tempDiv = document.createElement('div');
         tempDiv.appendChild(fragment);
 
+        // =================================================================
+        // 1. PLAIN TEXT MARKDOWN PAYLOAD (WhatsApp, Notion, Notepad)
+        // =================================================================
+        const plainDiv = tempDiv.cloneNode(true);
+
+        // Replace interactive math wrappers with pure Markdown LaTeX strings
+        plainDiv.querySelectorAll('.math-wrapper').forEach(wrapper => {
+            const rawEl = wrapper.querySelector('.math-raw-line');
+            const rawText = rawEl ? rawEl.textContent.trim() : '';
+            const isDisplay = wrapper.getAttribute('data-math-display') === 'true';
+            const formatted = isDisplay ? `\n\n$$ ${rawText} $$\n\n` : `$${rawText}$`;
+            
+            if (wrapper.parentNode) {
+                wrapper.parentNode.replaceChild(document.createTextNode(formatted), wrapper);
+            }
+        });
+
+        // Convert horizontal rules
+        plainDiv.querySelectorAll('.hr-raw-line').forEach(hr => {
+            if (hr.parentNode) {
+                hr.parentNode.replaceChild(document.createTextNode('\n\n---\n\n'), hr);
+            }
+        });
+
+        // Convert remaining standalone MathJax nodes
+        plainDiv.querySelectorAll('mjx-container').forEach(node => {
+            const rawTex = node.getAttribute('data-raw-tex');
+            const isDisplay = node.getAttribute('data-math-display') === 'true';
+            if (rawTex && node.parentNode) {
+                const mathText = isDisplay ? `\n\n$$ ${rawTex} $$\n\n` : `$${rawTex}$`;
+                node.parentNode.replaceChild(document.createTextNode(mathText), node);
+            }
+        });
+
+        const plainMarkdownText = plainDiv.innerText;
+
+        // =================================================================
+        // 2. RICH TEXT HTML PAYLOAD (Microsoft Word, Google Docs)
+        // =================================================================
         let tempHtml = `${WRAPPER_PARAGRAPH}${tempDiv.innerHTML}</p>`;
         tempHtml = tempHtml.replace(RE_LINE_BREAK, `</p>${WRAPPER_PARAGRAPH}`);
         tempDiv.innerHTML = tempHtml;
 
+        // Apply explicit inline styles across elements for Word compatibility
         tempDiv.querySelectorAll('*').forEach(el => {
             const tag = el.tagName;
             
@@ -122,6 +166,7 @@ export function initializeClipboard() {
             }
         });
 
+        // Convert horizontal rules to Word-compatible styled dividers
         tempDiv.querySelectorAll('hr').forEach(hr => {
             const hrWrapper = document.createElement('div');
             hrWrapper.style.marginTop = '18pt';
@@ -139,6 +184,7 @@ export function initializeClipboard() {
             hr.parentNode.replaceChild(hrWrapper, hr);
         });
 
+        // Convert MathJax elements into Word MathML structures
         tempDiv.querySelectorAll('mjx-container').forEach(node => {
             const mmlContainer = node.querySelector('mjx-assistive-mml');
 
@@ -177,7 +223,8 @@ export function initializeClipboard() {
             }
         });
 
+        // Write both payloads to clipboard
         e.clipboardData.setData('text/html', tempDiv.outerHTML);
-        e.clipboardData.setData('text/plain', tempDiv.innerText);
+        e.clipboardData.setData('text/plain', plainMarkdownText);
     });
 }

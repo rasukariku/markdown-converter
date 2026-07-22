@@ -3,7 +3,6 @@ import tempfile
 import platform
 import pypandoc
 
-# Extract magic strings and configurations to module-level constants
 _MATHJAX_URL = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'
 _PANDOC_EXTRA_ARGS = ['--standalone', f'--mathjax={_MATHJAX_URL}']
 
@@ -128,11 +127,10 @@ def _generate_pdf_linux(source_text_html: str, input_format: str) -> tuple[str, 
             source_text_html, 'html', format=input_format, extra_args=_PANDOC_EXTRA_ARGS
         )
         
-        # Inject CSS before the closing head tag
         html_string = html_string.replace('</head>', f'{_PDF_CSS_STYLES}</head>')
         
         with sync_playwright() as playwright:
-            # KUNCI PERBAIKAN: Menambahkan argumen stabilitas penuh untuk Linux Chromium tanpa GPU & batasan memori bersama (/dev/shm)
+            # FIXED: Add full sandboxing and stability flags for Linux headless Chromium to bypass /dev/shm memory limits
             browser = playwright.chromium.launch(
                 headless=True,
                 args=[

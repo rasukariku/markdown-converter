@@ -1,11 +1,11 @@
-// Pre-compile regular expressions untuk mengeliminasi overhead kompilasi regex saat traversal DOM
+// Pre-compile regular expressions to eliminate runtime compilation overhead during DOM traversal
 const RE_BORDER_BOTTOM = /border-bottom\s*:\s*[^;]+/i;
 const RE_BORDER_NONE = /border-bottom\s*:\s*(none|0px|initial|hidden)/i;
 
-// Menyimpan nilai konversi garis horizontal sebagai konstanta
+// Store the horizontal line conversion value as a constant
 const HR_REPLACEMENT = '\n\n---\n\n';
 
-// Konfigurasi dasar parser Turndown untuk menghindari duplikasi objek memori
+// Base configuration of the Turndown parser to prevent redundant memory allocation
 const BASE_TURNDOWN_OPTIONS = {
     headingStyle: 'atx',
     hr: '---',
@@ -14,13 +14,19 @@ const BASE_TURNDOWN_OPTIONS = {
     emDelimiter: '*'
 };
 
-// Penggunaan Set untuk optimasi pencarian element induk dengan kompleksitas O(1)
+// Use a Set to optimize parent element lookups with O(1) complexity
 const ALLOWED_PARENT_TAGS = new Set(['P', 'DIV', 'LI']);
 
 export function initializeTurndown() {
+    // Defensively prevent initialization failures if CDN loading lags behind
+    if (typeof marked === 'undefined' || typeof TurndownService === 'undefined') {
+        console.error("Critical rendering dependencies (Marked or TurndownService) not found.");
+        return { standardTurndown: null, dedicatedExportTurndown: null, notionExportTurndown: null };
+    }
+
     marked.setOptions({ breaks: true, gfm: true });
 
-    // Factory function untuk mempermudah instansiasi Turndown dan penggunaan shared rules (DRY Pattern)
+    // Factory function to simplify Turndown instantiation and share common rules (DRY pattern)
     const createTurndownInstance = (keepTags) => {
         const instance = new TurndownService(BASE_TURNDOWN_OPTIONS);
         instance.use(turndownPluginGfm.gfm);
@@ -49,28 +55,28 @@ export function initializeTurndown() {
         return instance;
     };
 
-    // 1. INISIALISASI STANDARD TURNDOWN
+    // 1. STANDARD TURNDOWN INITIALIZATION
     const standardTurndown = createTurndownInstance(['span', 'font', 'div', 'img', 'a', 'sup', 'sub']);
 
     standardTurndown.addRule('underline', {
         filter: ['u', 'ins'],
-        // KUNCI PERBAIKAN: Menghapus spasi liar pada penulisan tag HTML underline
+        // FIXED: Remove trailing spaces inside HTML underline tags
         replacement: (content) => '<u>' + content + '</u>'
     });
 
     standardTurndown.addRule('strikethrough', {
         filter: ['del', 's', 'strike'],
-        // KUNCI PERBAIKAN: Mengembalikan karakter penanda coretan (strikethrough) Markdown
+        // FIXED: Restore the standard markdown strikethrough syntax
         replacement: (content) => '~~' + content + '~~'
     });
 
     standardTurndown.addRule('align', {
         filter: (node) => node.style && node.style.textAlign && !['LI', 'UL', 'OL'].includes(node.nodeName),
-        // KUNCI PERBAIKAN: Membersihkan struktur tag div penyeimbang tulisan agar rapi dan kompatibel
+        // FIXED: Clean up the div alignment structure to preserve document formatting
         replacement: (content, node) => '\n\n<div align="' + node.style.textAlign + '">\n\n' + content + '\n\n</div>\n\n'
     });
 
-    // 2. INISIALISASI DEDICATED EXPORT TURNDOWN (Untuk Keperluan Ekspor)
+    // 2. DEDICATED EXPORT TURNDOWN INITIALIZATION
     const dedicatedExportTurndown = createTurndownInstance(['span', 'font', 'div', 'img', 'a']);
 
     dedicatedExportTurndown.addRule('mathjax_universal', {
@@ -94,5 +100,30 @@ export function initializeTurndown() {
         }
     });
 
-    return { standardTurndown, dedicatedExportTurndown };
+    // 3. NOTION-SPECIFIC EXPORT TURNDOWN INITIALIZATION
+    const notionExportTurndown = createTurndownInstance(['span', 'font', 'div', 'img', 'a']);
+
+    notionExportTurndown.addRule('mathjax_notion', {
+        filter: (node) => node.nodeName === 'MJX-CONTAINER' || node.hasAttribute('data-raw-tex'),
+        replacement: (content, node) => {
+            const rawTex = node.getAttribute('data-raw-tex');
+            if (!rawTex) return '';
+
+            const cleanTex = rawTex.trim();
+            const isDisplay = node.getAttribute('data-math-display') === 'true';
+            let isStandalone = false;
+
+            const parent = node.parentElement;
+            if (parent && ALLOWED_PARENT_TAGS.has(parent.tagName)) {
+                if (parent.textContent.trim() === node.textContent.trim()) {
+                    isStandalone = true;
+                }
+            }
+
+            // Notion requires double-dollar ($$) for inline math to trigger KaTeX rendering upon paste actions
+            return (isDisplay || isStandalone) ? `\n\n$$\n${cleanTex}\n$$\n\n` : `$$${cleanTex}$$`;
+        }
+    });
+
+    return { standardTurndown, dedicatedExportTurndown, notionExportTurndown };
 }

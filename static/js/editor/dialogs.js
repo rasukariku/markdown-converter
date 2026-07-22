@@ -6,19 +6,17 @@ import { openWin, closeWin } from '../ui/modals.js';
 // =========================================================================
 
 /**
- * Menginisialisasi semua event listener dialog (Tautan, Gambar, Tabel).
+ * Initializes all dialog event listeners (Link, Image, Table, and Horizontal Rule dialogs).
  * 
- * @param {Function} formatDoc - Fungsi pemformatan dokumen core utama.
+ * @param {Function} formatDoc - Core document formatting function.
  */
 export function initializeDialogs(formatDoc) {
-    // Cache referensi DOM untuk mengeliminasi query berulang saat eksekusi event
     const linkTextInput = document.getElementById('link-text-input');
     const linkUrlInput = document.getElementById('link-url-input');
     const imgUrlInput = document.getElementById('img-url-input');
     const tableColsInput = document.getElementById('table-cols');
     const tableRowsInput = document.getElementById('table-rows');
 
-    // Mengembalikan seleksi kursor pengguna yang disimpan sebelum interaksi dialog modal
     const restoreSelection = () => {
         if (state.savedSelection) {
             const sel = window.getSelection();
@@ -28,87 +26,113 @@ export function initializeDialogs(formatDoc) {
     };
 
     // Dialog Modal: Insert Link
-    document.getElementById('btn-link').onclick = () => {
-        const sel = window.getSelection();
-        if (sel.rangeCount > 0) {
-            state.savedSelection = sel.getRangeAt(0).cloneRange();
-            linkTextInput.value = sel.toString();
-        }
-        linkUrlInput.value = 'https://';
-        openWin('win-link');
-    };
+    const btnLink = document.getElementById('btn-link');
+    if (btnLink) {
+        btnLink.onclick = () => {
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                state.savedSelection = sel.getRangeAt(0).cloneRange();
+                if (linkTextInput) linkTextInput.value = sel.toString();
+            }
+            if (linkUrlInput) linkUrlInput.value = 'https://';
+            openWin('win-link');
+        };
+    }
 
-    document.getElementById('btn-confirm-link').onclick = () => {
-        const text = linkTextInput.value;
-        const url = linkUrlInput.value;
-        closeWin('win-link');
-        dom.renderedOutput.focus();
-        
-        restoreSelection();
-        
-        if (text) {
-            formatDoc('insertHTML', `<a href="${url}">${text}</a>`);
-        } else {
-            formatDoc('createLink', url);
-        }
-    };
+    const btnConfirmLink = document.getElementById('btn-confirm-link');
+    if (btnConfirmLink) {
+        btnConfirmLink.onclick = () => {
+            const text = linkTextInput ? linkTextInput.value : '';
+            const url = linkUrlInput ? linkUrlInput.value : '';
+            closeWin('win-link');
+            if (dom.renderedOutput) dom.renderedOutput.focus();
+            
+            restoreSelection();
+            
+            if (text) {
+                formatDoc('insertHTML', `<a href="${url}">${text}</a>`);
+            } else {
+                formatDoc('createLink', url);
+            }
+        };
+    }
 
     // Dialog Modal: Insert Image
-    document.getElementById('btn-image').onclick = () => {
-        const sel = window.getSelection();
-        if (sel.rangeCount > 0) {
-            state.savedSelection = sel.getRangeAt(0).cloneRange();
-        }
-        imgUrlInput.value = 'https://';
-        openWin('win-image');
-    };
+    const btnImage = document.getElementById('btn-image');
+    if (btnImage) {
+        btnImage.onclick = () => {
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                state.savedSelection = sel.getRangeAt(0).cloneRange();
+            }
+            if (imgUrlInput) imgUrlInput.value = 'https://';
+            openWin('win-image');
+        };
+    }
 
-    document.getElementById('btn-confirm-image').onclick = () => {
-        const url = imgUrlInput.value;
-        closeWin('win-image');
-        dom.renderedOutput.focus();
-        
-        restoreSelection();
-        formatDoc('insertImage', url);
-    };
+    const btnConfirmImage = document.getElementById('btn-confirm-image');
+    if (btnConfirmImage) {
+        btnConfirmImage.onclick = () => {
+            const url = imgUrlInput ? imgUrlInput.value : '';
+            closeWin('win-image');
+            if (dom.renderedOutput) dom.renderedOutput.focus();
+            
+            restoreSelection();
+            formatDoc('insertImage', url);
+        };
+    }
 
     // Dialog Modal: Insert Table
-    document.getElementById('btn-confirm-table').onclick = () => {
-        let cols = parseInt(tableColsInput.value, 10) || 3;
-        let rows = parseInt(tableRowsInput.value, 10) || 3;
-        
-        cols = Math.max(1, Math.min(20, cols));
-        rows = Math.max(1, Math.min(50, rows));
+    const btnConfirmTable = document.getElementById('btn-confirm-table');
+    if (btnConfirmTable) {
+        btnConfirmTable.onclick = () => {
+            let cols = parseInt(tableColsInput ? tableColsInput.value : 3, 10) || 3;
+            let rows = parseInt(tableRowsInput ? tableRowsInput.value : 3, 10) || 3;
+            
+            cols = Math.max(1, Math.min(20, cols));
+            rows = Math.max(1, Math.min(50, rows));
 
-        // Pembuatan markup HTML tabel teroptimasi dengan metode join array
-        const tableHTML = [
-            '<br><table border="1" style="border-collapse: collapse; width: 100%; border-color: #555; table-layout: fixed;"><tbody>',
-            ...Array.from({ length: rows }, () => 
-                '<tr>' + 
-                Array.from({ length: cols }, () => '<td style="padding: 10px;"><br></td>').join('') + 
-                '</tr>'
-            ).join(''),
-            '</tbody></table><br>'
-        ].join('');
+            const tableHTML = [
+                '<br><table border="1" style="border-collapse: collapse; width: 100%; border-color: #555; table-layout: fixed;"><tbody>',
+                ...Array.from({ length: rows }, () => 
+                    '<tr>' + 
+                    Array.from({ length: cols }, () => '<td style="padding: 10px;"><br></td>').join('') + 
+                    '</tr>'
+                ).join(''),
+                '</tbody></table><br>'
+            ].join('');
 
-        closeWin('win-table');
-        formatDoc('insertHTML', tableHTML);
-    };
+            closeWin('win-table');
+            formatDoc('insertHTML', tableHTML);
+        };
+    }
+
+    // FIXED: Register Horizontal Rule Style Selection Handlers inside #win-hr
+    document.querySelectorAll('.hr-select-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            e.preventDefault();
+            const ruleType = btn.getAttribute('data-type') || '---';
+            closeWin('win-hr');
+            if (dom.renderedOutput) dom.renderedOutput.focus();
+            
+            const hrHTML = `<p class="hr-raw-line" contenteditable="true" data-chars="${ruleType}">${ruleType}</p><p><br></p>`;
+            formatDoc('insertHTML', hrHTML);
+        };
+    });
 }
 
 /**
- * Menginisialisasi event listener fitur Pencarian dan Penggantian kata (Find and Replace).
+ * Initializes the Find and Replace event listeners.
  * 
- * @param {Function} formatDoc - Fungsi pemformatan dokumen core utama.
- * @param {Function} syncRenderedToRaw - Callback untuk sinkronisasi editor visual ke raw markdown.
+ * @param {Function} formatDoc - Core document formatting function.
+ * @param {Function} syncRenderedToRaw - Callback to sync the visual editor to raw markdown.
  */
 export function initializeFindReplace(formatDoc, syncRenderedToRaw) {
-    // Cache referensi DOM pencarian
     const findInput = document.getElementById('find-input');
     const replaceInput = document.getElementById('replace-input');
 
     const executeFind = () => {
-        const text = findInput.value;
+        const text = findInput ? findInput.value : '';
         if (text) {
             if (!window.find(text, false, false, true, false, true, false)) {
                 alert('Text not found / reached end.');
@@ -117,8 +141,8 @@ export function initializeFindReplace(formatDoc, syncRenderedToRaw) {
     };
 
     const executeReplace = () => {
-        const findText = findInput.value;
-        const replaceText = replaceInput.value;
+        const findText = findInput ? findInput.value : '';
+        const replaceText = replaceInput ? replaceInput.value : '';
         const sel = window.getSelection();
         
         if (sel.toString().toLowerCase() === findText.toLowerCase()) {
@@ -129,29 +153,35 @@ export function initializeFindReplace(formatDoc, syncRenderedToRaw) {
     };
 
     const executeReplaceAll = () => {
-        const findText = findInput.value;
-        const replaceText = replaceInput.value;
+        const findText = findInput ? findInput.value : '';
+        const replaceText = replaceInput ? replaceInput.value : '';
         if (!findText) return;
         
         const range = document.createRange();
-        range.selectNodeContents(dom.renderedOutput);
-        range.collapse(true);
-        
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-        
-        let count = 0;
-        while (window.find(findText, false, false, true, false, true, false) && count < 1000) {
-            document.execCommand('insertText', false, replaceText);
-            count++;
+        if (dom.renderedOutput) {
+            range.selectNodeContents(dom.renderedOutput);
+            range.collapse(true);
+            
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            
+            let count = 0;
+            while (window.find(findText, false, false, true, false, true, false) && count < 1000) {
+                document.execCommand('insertText', false, replaceText);
+                count++;
+            }
+            
+            alert(`${count} occurrences replaced.`);
+            syncRenderedToRaw();
         }
-        
-        alert(`${count} occurrences replaced.`);
-        syncRenderedToRaw();
     };
 
-    document.getElementById('btn-find-next').onclick = executeFind;
-    document.getElementById('btn-replace-btn').onclick = executeReplace;
-    document.getElementById('btn-replace-all').onclick = executeReplaceAll;
+    const btnFindNext = document.getElementById('btn-find-next');
+    const btnReplaceBtn = document.getElementById('btn-replace-btn');
+    const btnReplaceAll = document.getElementById('btn-replace-all');
+
+    if (btnFindNext) btnFindNext.onclick = executeFind;
+    if (btnReplaceBtn) btnReplaceBtn.onclick = executeReplace;
+    if (btnReplaceAll) btnReplaceAll.onclick = executeReplaceAll;
 }

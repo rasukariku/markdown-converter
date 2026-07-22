@@ -36,12 +36,23 @@ const STORAGE_KEY = 'massivemark_draft_md';
 // =========================================================================
 // HELPER FUNCTIONS
 // =========================================================================
+
+/**
+ * Decodes raw HTML entity encodings back into standard LaTeX string characters.
+ * 
+ * @param {string} text - The encoded HTML string.
+ * @returns {string} Clean, decoded string.
+ */
 function decodeHtmlEntities(text) {
     return text.replace(RE_HTML_ENTITIES, (match) => HTML_ENTITY_MAP[match]);
 }
 
 /**
- * Creates an interactive math wrapper matching the Obsidian-style.
+ * Creates an interactive math wrapper container matching the Obsidian visual layout style.
+ * 
+ * @param {string} mathContent - Raw LaTeX equation string.
+ * @param {boolean} isDisplay - Indicates whether the equation is a display block (true) or inline (false).
+ * @returns {string} Generated HTML string for the interactive math component.
  */
 function createInteractiveMathWrapper(mathContent, isDisplay) {
     const cleanContent = mathContent.trim();
@@ -69,11 +80,24 @@ function createInteractiveMathWrapper(mathContent, isDisplay) {
     }
 }
 
+// =========================================================================
+// EXPORTED CORE SYNCHRONIZATION FUNCTIONS
+// =========================================================================
+
 /**
- * Protects math equations and horizontal dividers from the Markdown parser.
+ * Protects math equations and horizontal dividers from the Markdown parser during HTML compilation.
+ * 
+ * @param {string} text - Input raw Markdown text.
+ * @returns {string} Compiled HTML string with interactive math and rule wrappers.
  */
 export function parseMarkdownWithMath(text) {
     if (!text) return '';
+    
+    // Safety check to prevent UI lock if script dependencies fail to download from CDNs
+    if (typeof marked === 'undefined') {
+        console.error("Markdown parser (Marked) is unavailable.");
+        return text;
+    }
 
     const mathBlocks = [];
 
@@ -93,10 +117,17 @@ export function parseMarkdownWithMath(text) {
         return placeholder;
     });
 
+    // 3. Intercept standalone horizontal rules (---, ===, ***, ___) BEFORE Marked parsing
+    // to preserve exact character attributes and enable double and dotted CSS styling.
+    processedText = processedText.replace(/^(?:[ \t]*)(-{3,}|={3,}|\*{3,}|_{3,})(?:[ \t]*)$/gm, (match, chars) => {
+        const cleanChars = chars.trim();
+        return `<p class="hr-raw-line" contenteditable="true" data-chars="${cleanChars}">${cleanChars}</p>`;
+    });
+
     // 4. Invoke Marked Parser on isolated structural contents
     let parsedHTML = marked.parse(processedText);
 
-    // 5. Restore math elements inside parsed HTML
+    // 5. Restore math elements inside parsed HTML structure
     mathBlocks.forEach(({ placeholder, wrapper }) => {
         const pWrappedPlaceholder = `<p>${placeholder}</p>`;
         if (parsedHTML.includes(pWrappedPlaceholder)) {
@@ -106,16 +137,32 @@ export function parseMarkdownWithMath(text) {
         }
     });
 
-    // KUNCI PERBAIKAN UTAMA: Konversi tag HR alami hasil parsing marked menjadi block editable murni
+    // 6. Catch any standard <hr> tags that bypassed pre-processing
     parsedHTML = parsedHTML.replace(/<hr\s*\/?>/gi, `<p class="hr-raw-line" contenteditable="true" data-chars="---">---</p>`);
 
     return parsedHTML;
 }
 
+/**
+ * Sanitizes raw AI outputs, converting non-standard delimiters, zero-width spaces, 
+ * and single internal line breaks to prevent word concatenation when copied.
+ * 
+ * @param {string} plainData - Unsanitized raw AI string.
+ * @returns {string} Sanitized string ready for Markdown rendering.
+ */
 export function sanitizeAIText(plainData) {
+    if (!plainData) return '';
+
+    // Convert non-breaking spaces and zero-width characters to standard spaces
     plainData = plainData.replace(RE_SPECIAL_CHARS, ' ');
-    plainData = plainData.replace(RE_CRLF, '\n');
-    plainData = plainData.replace(RE_CR, '\n');
+    plainData = plainData.replace(RE_CRLF, '\n').replace(RE_CR, '\n');
+
+    // Convert single internal paragraph line breaks into spaces to prevent word concatenation on copy
+    plainData = plainData.replace(/(?<!\n)\n(?!\n)/g, ' ');
+
+    // Normalize multiple space characters into a single space
+    plainData = plainData.replace(/[ \t]{2,}/g, ' ');
+
     plainData = plainData.replace(RE_AI_BOLD_LIST, '$1 **$2**');
     plainData = plainData.replace(RE_AI_BOLD_LIST_END, '$1 ');
     plainData = plainData.replace(RE_HR_INLINE, '$1\n\n$2\n\n');
@@ -137,13 +184,18 @@ export function sanitizeAIText(plainData) {
     return processedText.replace(RE_EXCESS_NEWLINES, '\n\n');
 }
 
+/**
+ * Synchronizes raw Markdown textarea changes into the visual WYSIWYG editor.
+ * 
+ * @param {Function} updateCounter - Callback to refresh metrics.
+ */
 export function syncRawToRendered(updateCounter) {
     if (state.isSyncing) return;
     state.isSyncing = true;
 
-    const rawText = dom.rawMarkdownInput.value;
+    const rawText = dom.rawMarkdownInput ? dom.rawMarkdownInput.value : '';
     if (!rawText.trim()) {
-        dom.renderedOutput.innerHTML = '';
+        if (dom.renderedOutput) dom.renderedOutput.innerHTML = '';
         state.isSyncing = false;
         updateCounter();
         return;
@@ -163,14 +215,16 @@ export function syncRawToRendered(updateCounter) {
     });
 
     const parsedHTML = parseMarkdownWithMath(processedText);
-    dom.renderedOutput.innerHTML = parsedHTML;
+    if (dom.renderedOutput) dom.renderedOutput.innerHTML = parsedHTML;
 
     if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
         window.MathJax.typesetPromise([dom.renderedOutput])
             .then(() => {
-                dom.renderedOutput.querySelectorAll('mjx-container').forEach(node => {
-                    node.setAttribute('contenteditable', 'false');
-                });
+                if (dom.renderedOutput) {
+                    dom.renderedOutput.querySelectorAll('mjx-container').forEach(node => {
+                        node.setAttribute('contenteditable', 'false');
+                    });
+                }
                 updateCounter();
                 localStorage.setItem(STORAGE_KEY, rawText);
                 state.isSyncing = false;
@@ -186,8 +240,14 @@ export function syncRawToRendered(updateCounter) {
     }
 }
 
+/**
+ * Synchronizes visual WYSIWYG editor changes back into raw Markdown format.
+ * 
+ * @param {object} standardTurndown - Active Turndown parser instance.
+ * @param {Function} updateCounter - Callback to refresh metrics.
+ */
 export function syncRenderedToRaw(standardTurndown, updateCounter) {
-    if (state.isSyncing) return;
+    if (state.isSyncing || !dom.renderedOutput) return;
     state.isSyncing = true;
 
     const clone = dom.renderedOutput.cloneNode(true);
@@ -203,8 +263,9 @@ export function syncRenderedToRaw(standardTurndown, updateCounter) {
         }
     });
 
+    // Reads data-chars attribute to preserve exact rule character styles (===, ***) during serialization
     clone.querySelectorAll('.hr-raw-line').forEach(rawLine => {
-        const rawText = rawLine.innerText.trim();
+        const rawText = rawLine.getAttribute('data-chars') || rawLine.innerText.trim() || '---';
         if (rawLine.parentNode) {
             rawLine.parentNode.replaceChild(document.createTextNode('\n\n' + rawText + '\n\n'), rawLine);
         }
@@ -223,9 +284,11 @@ export function syncRenderedToRaw(standardTurndown, updateCounter) {
 
     let md = standardTurndown.turndown(clone.innerHTML);
     md = md.replace(RE_EXCESS_NEWLINES, '\n\n');
+    
+    // RESTORED: Deduplicates consecutive horizontal rule blocks during serialization
     md = md.replace(/(?:\n\n---\n\n){2,}/g, '\n\n---\n\n');
 
-    dom.rawMarkdownInput.value = md;
+    if (dom.rawMarkdownInput) dom.rawMarkdownInput.value = md;
     updateCounter();
     localStorage.setItem(STORAGE_KEY, md);
     state.isSyncing = false;

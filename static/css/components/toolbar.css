@@ -64,16 +64,20 @@ Editor Container & Toolbar
     background-color: var(--border-color);
 }
 
-.btn-red, .btn-blue, .tool-btn {
+.btn-red, .btn-red-clear, .btn-amber, .btn-blue, .tool-btn {
     /* Box Model */
+    height: 32px;
+    min-width: 32px;
     padding: 5px 8px;
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: 6px;
     
     /* Layout */
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
+    vertical-align: middle;
     
     /* Visuals */
     background-color: transparent;
@@ -83,25 +87,51 @@ Editor Container & Toolbar
     user-select: none;
     
     /* Transitions: Added explicit 'ease' timing function */
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .btn-red {
+    /* Visuals */
     color: #ff4d4d;
     border-color: #ff4d4d;
 }
 
 .btn-red:hover {
+    /* Visuals */
     background-color: rgba(255, 77, 77, 0.1);
 }
 
+.btn-red-clear {
+    /* Visuals */
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+.btn-red-clear:hover {
+    /* Visuals */
+    background-color: rgba(239, 68, 68, 0.15);
+}
+
+.btn-amber {
+    /* Visuals */
+    color: #f59e0b;
+    border-color: #f59e0b;
+}
+
+.btn-amber:hover {
+    /* Visuals */
+    background-color: rgba(245, 158, 11, 0.15);
+}
+
 .btn-blue {
+    /* Visuals */
     color: #3b82f6;
     border-color: #3b82f6;
 }
 
 .btn-blue:hover {
-    background-color: rgba(59, 130, 246, 0.1);
+    /* Visuals */
+    background-color: rgba(59, 130, 246, 0.15);
 }
 
 .tool-btn {
@@ -115,6 +145,7 @@ Editor Container & Toolbar
 }
 
 .tool-btn:hover {
+    /* Visuals */
     background-color: var(--btn-tool-hover);
     color: var(--text-main);
 }
@@ -168,6 +199,84 @@ Editor Container & Toolbar
 }
 
 .tool-select:focus {
+    /* Visuals */
     outline: none;
     border-color: #3b82f6;
+}
+
+/* =====================================================================
+Dropdown Menu (Markdown Actions)
+===================================================================== */
+.toolbar-dropdown {
+    /* Positioning */
+    position: relative;
+    
+    /* Layout */
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.dropdown-content {
+    /* Positioning */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 200;
+    
+    /* Box Model */
+    min-width: 260px;
+    margin-top: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    
+    /* Layout */
+    display: none;
+    overflow: hidden;
+    
+    /* Visuals */
+    background-color: var(--bg-toolbar);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    
+    /* Animation */
+    animation: dropdownPop 0.15s ease-out;
+}
+
+@keyframes dropdownPop {
+    from { 
+        transform: translateY(-5px); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+.dropdown-content.active {
+    /* Layout */
+    display: block;
+}
+
+.dropdown-content a {
+    /* Box Model */
+    padding: 10px 14px;
+    
+    /* Layout */
+    display: block;
+    
+    /* Typography */
+    font-size: 13.5px;
+    font-family: 'Poppins', sans-serif;
+    color: var(--text-main);
+    text-decoration: none;
+    
+    /* Interaction */
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dropdown-content a:hover {
+    /* Visuals */
+    background-color: var(--btn-tool-hover);
+    color: #ffffff;
 }

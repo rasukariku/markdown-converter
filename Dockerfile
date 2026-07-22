@@ -69,8 +69,8 @@ COPY --chown=user:user . .
 # =====================================================================
 EXPOSE 7860
 
-# KUNCI PERBAIKAN UTAMA:
-# 1. --preload: Memaksa aplikasi untuk memuat kode saat startup agar kegagalan impor langsung terlihat di log (fail-fast).
-# 2. --timeout 120: Mencegah pekerja dibunuh saat memproses dokumen berukuran besar atau rendering PDF.
-# 3. --capture-output & --enable-stdio-inheritance: Memaksa traceback Python/Flask diteruskan ke log kontainer.
+# PRODUCTION-GRADE RUNTIME PROFILE CONFIGURATION:
+# 1. --preload: Forces the application to import the codebase on startup for fail-fast crash detection
+# 2. --timeout 120: Prevents workers from being killed prematurely during large PDF generation workloads
+# 3. --capture-output & --enable-stdio-inheritance: Routes stack trace logs cleanly to the container stdout/stderr
 CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "--threads", "8", "--timeout", "120", "--preload", "--access-logfile", "-", "--error-logfile", "-", "--capture-output", "--enable-stdio-inheritance", "app:app"]

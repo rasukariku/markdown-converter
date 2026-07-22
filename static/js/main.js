@@ -6,7 +6,7 @@ import { initializeDialogs, initializeFindReplace } from './editor/dialogs.js';
 import { initializePasteInterceptors } from './editor/paste.js';
 import { initializeClipboard } from './editor/clipboard.js';
 import { initializeTables } from './features/tables.js';
-import { initializeExport } from './features/export.js';
+import { initializeExport, safeCopyToClipboard } from './features/export.js';
 import { initializeStats } from './features/stats.js';
 import { initializeDrag } from './features/drag.js';
 import { initializeAutosave } from './features/autosave.js';
@@ -15,7 +15,7 @@ import { openWin, closeWin } from './ui/modals.js';
 import { applyLanguage, translations } from './ui/language.js';
 import { initializeFormatCycle, checkToolbarActive } from './ui/toolbar.js';
 
-// KUNCI PERBAIKAN: Impor modul Obsidian-Style Live Preview dan Tema
+// FIXED: Initialize live markdown preview events and theme configs
 import { initializeLivePreview } from './editor/live-preview.js';
 import './ui/theme.js';
 
@@ -23,11 +23,18 @@ import './ui/theme.js';
 // GLOBAL SCOPE BRIDGES & MODULAR INITIALIZATION
 // =====================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Inisialisasi Engine Core Utama
-    const { standardTurndown, dedicatedExportTurndown } = initializeTurndown();
+    // 1. Core Engine Initialization (Saves and registers standard, dedicated, and Notion-compatible Turndown engines)
+    const { standardTurndown, dedicatedExportTurndown, notionExportTurndown } = initializeTurndown();
+    
+    // Stop initialization to prevent console clutter if the network blocks Turndown
+    if (!standardTurndown || !dedicatedExportTurndown || !notionExportTurndown) {
+        console.error("Startup cancelled. Critical dependencies not found.");
+        return;
+    }
+
     const updateCounter = initializeStats(translations);
 
-    // 2. Deklarasi Fungsi Sinkronisasi Terikat (Bound Functions)
+    // 2. Bound Synchronization Functions (Isolates instance sync operations)
     const boundFormatDoc = (cmd, value) => formatDoc(
         cmd, 
         value, 
@@ -36,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     const boundSyncRenderedToRaw = () => syncRenderedToRaw(standardTurndown, updateCounter);
 
-    // 3. Ekspos Jembatan Fungsi ke Global Scope Secepat Mungkin.
+    // 3. Expose Bound Functions to the Global Window Scope for legacy inline elements
     window.formatDoc = boundFormatDoc;
     window.toggleFullscreen = toggleFullscreen;
     window.insertHorizontalRule = () => insertHorizontalRule(boundFormatDoc);
@@ -46,45 +53,62 @@ document.addEventListener('DOMContentLoaded', () => {
     window.closeWin = closeWin;
     window.resetTypewriter = resetTypewriter;
     
-    // KUNCI PERBAIKAN: Sediakan jembatan global sinkronisasi untuk dipanggil oleh modul Live Preview
+    // FIXED: Expose sync function to the window scope for Live Preview triggers
     window.triggerSync = boundSyncRenderedToRaw;
 
-    // 4. Daftarkan Event Listener Utama pada Input Editor
-    dom.rawMarkdownInput.addEventListener('input', () => syncRawToRendered(updateCounter));
-    dom.renderedOutput.addEventListener('input', boundSyncRenderedToRaw);
+    // 4. Register Input Events to Trigger Real-Time Sync
+    if (dom.rawMarkdownInput) {
+        dom.rawMarkdownInput.addEventListener('input', () => syncRawToRendered(updateCounter));
+    }
+    if (dom.renderedOutput) {
+        dom.renderedOutput.addEventListener('input', boundSyncRenderedToRaw);
+    }
 
-    // 5. Inisialisasi Seluruh Modul Fitur, Live Preview & Dialog
+    // 5. Initialize Feature, Live Preview, and Dialog Modules
     initializeDialogs(boundFormatDoc);
     initializeFindReplace(boundFormatDoc, boundSyncRenderedToRaw);
     initializePasteInterceptors(standardTurndown, updateCounter);
     initializeClipboard();
     initializeTables(boundSyncRenderedToRaw);
-    initializeExport(dedicatedExportTurndown, boundSyncRenderedToRaw, updateCounter);
+    
+    // Passes the Notion-mode Turndown instance to the exporter
+    initializeExport(dedicatedExportTurndown, notionExportTurndown, boundSyncRenderedToRaw, updateCounter);
+    
+    // FIXED: Safe Copy Bridge imported to allow raw text copy fallbacks over non-secure LAN environments
+    const copyRawBtn = document.getElementById('btn-copy-raw');
+    if (copyRawBtn) {
+        copyRawBtn.onclick = function() {
+            if (dom.rawMarkdownInput) {
+                const textToCopy = dom.rawMarkdownInput.value;
+                const currentLang = localStorage.getItem('appLang') || 'id';
+                
+                const feedbackText = currentLang === 'id' ? '✅ Berhasil Disalin!' : '✅ Copied!';
+                const originalText = currentLang === 'id' ? 'Salin Markdown' : 'Copy Markdown';
+                
+                safeCopyToClipboard(textToCopy, () => {
+                    copyRawBtn.innerText = feedbackText;
+                    setTimeout(() => {
+                        copyRawBtn.innerText = originalText;
+                    }, 2000);
+                }, (err) => {
+                    console.error("Secure copy action failed inside raw-copy module:", err);
+                });
+            }
+        };
+    }
+
     initializeDrag();
     initializeAutosave(boundSyncRenderedToRaw, updateCounter);
     initializeFormatCycle();
-    initializeLivePreview(); // Kunci Perbaikan: Jalankan delegasi event interaksi edit matematika
+    initializeLivePreview(); // Triggers real-time math interactions and selection updates
 
-    // 6. Daftarkan Handler Tombol Raw Markdown Modal secara Manual
-    document.getElementById('btn-open-raw').onclick = () => {
-        openWin('win-raw');
-        boundSyncRenderedToRaw();
-        dom.rawMarkdownInput.focus();
-    };
-
-    document.getElementById('btn-copy-raw').onclick = function() {
-        navigator.clipboard.writeText(dom.rawMarkdownInput.value);
-        this.innerText = "Copied!";
-        setTimeout(() => this.innerText = "Copy Markdown", 2000);
-    };
-
-    // 7. Mulai Jalankan Typewriter dan Terapkan Konfigurasi Bahasa
+    // 7. Initialize Typewriter and Apply Language Settings
     typeWriter();
     applyLanguage(updateCounter);
 
-    // 8. Muat Draft dari Penyimpanan Lokal (LocalStorage) Jika Ada
+    // 8. Load Draft from LocalStorage if Available
     const savedDraft = localStorage.getItem('massivemark_draft_md');
-    if (savedDraft) {
+    if (savedDraft && dom.rawMarkdownInput) {
         dom.rawMarkdownInput.value = savedDraft;
         syncRawToRendered(updateCounter);
     }

@@ -12,7 +12,7 @@ const BTN_LANG_TOGGLE_ID = 'lang-toggle';
 let cachedUpdateCounter = null;
 
 // =========================================================================
-// DATA DEFINITIONS (TRANSLATIONS & COMPLETE EMOJIS)
+// DATA DEFINITIONS (TRANSLATIONS & UNABRIDGED UNICODE EMOJIS)
 // =========================================================================
 
 const translations = Object.freeze({
@@ -26,7 +26,19 @@ const translations = Object.freeze({
         'tImage': 'Sisipkan Gambar', 'lblImageUrl': 'URL Gambar:',
         'tFind': 'Cari & Ganti', 'lblFind': 'Cari Teks:', 'lblReplace': 'Ganti Menjadi:',
         'tEmoji': 'Pilih Emoticon', 'btnRepAll': 'Ganti Semua', 'btnFindNxt': 'Cari Lanjut', 'btnRep': 'Ganti',
-        'selection': '(Teks Diblok)', 'quote': 'Kutipan', 'hr': 'Garis Pemisah'
+        'selection': '(Teks Diblok)', 'quote': 'Kutipan', 'hr': 'Garis Pemisah',
+        
+        'btnOpenRaw': 'Ekspor Markdown',
+        'menuExportStd': '📤 Ekspor Standard (LaTeX)',
+        'menuExportNotion': '📤 Ekspor Mode Notion',
+        
+        'btnCopyUniversal': 'Salin Ekspor',
+        'btnCopyRaw': 'Salin Markdown',
+
+        'tConfirmClear': 'Konfirmasi Hapus Editor',
+        'msgConfirmClear': 'Apakah Anda yakin ingin mengosongkan seluruh konten editor? Tindakan ini tidak dapat dibatalkan.',
+
+        'tHrModal': 'Pilih Gaya Garis Pemisah'
     },
     'en': {
         'langBtn': 'EN', 'sub1': 'Convert Text from', 'sub2': 'to',
@@ -38,7 +50,19 @@ const translations = Object.freeze({
         'tImage': 'Insert Image', 'lblImageUrl': 'Image URL:',
         'tFind': 'Find & Replace', 'lblFind': 'Find what:', 'lblReplace': 'Replace with:',
         'tEmoji': 'Select Emoticon', 'btnRepAll': 'Replace All', 'btnFindNxt': 'Find Next', 'btnRep': 'Replace',
-        'selection': '(Text Selected)', 'quote': 'Quote', 'hr': 'Horizontal Line'
+        'selection': '(Text Selected)', 'quote': 'Quote', 'hr': 'Horizontal Line',
+        
+        'btnOpenRaw': 'Export Markdown',
+        'menuExportStd': '📤 Export Standard (LaTeX)',
+        'menuExportNotion': '📤 Export Notion Mode',
+        
+        'btnCopyUniversal': 'Copy Export',
+        'btnCopyRaw': 'Copy Markdown',
+
+        'tConfirmClear': 'Confirm Clear Editor',
+        'msgConfirmClear': 'Are you sure you want to clear all editor contents? This action cannot be undone.',
+
+        'tHrModal': 'Select Horizontal Divider'
     }
 });
 
@@ -46,14 +70,14 @@ const emojiCategories = Object.freeze({
     'id': {
         "Smileys & Emotion": ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","😋","😎","😍","😘","🥰","🥲","☺️","🤗","🤩","🤔","🤨","😐","😑","😶","🙄","😏","😣","😥","😮","🤐","😯","😪","😫","🥱","😴","😌","😛","😜","😝","🤤","😒","😓","😔","😕","🙃","🤑","😲","☹️","🙁","😖","😞","😟","😤","😢","😭","😦","😧","😨","😩","🤯","😬","😰","😱","🥵","🥶","😳","🤪","😵","🥴","😠","😡","🤬"], 
         "Gestures & People": ["👋","🤚","🖐","✋","🖖","👌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","👇","☝️","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","✍️","💅","🤳","💪","👀","👁","👅","👄","💋","🧠","🫀"], 
-        "Animals & Nature": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🐢","🐍","🦎","🦖","🐙","🦑","🦐","🦀","🐡","🐠","🐟","🐬","🐳","🦈","🐊","🐅","🐆","🦓","🦍","🐘","🦛","🦏","🐪","🦒","🦘","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🐐","🦌","🐕","🐈","🐓","🦃","🦚","🦜","🦢","🕊","🐇","🦝","🦨","🦡","🦦","🦥","🐁","🐀","🐿","🦔","🐉","🐲","🌵","🎄","🌲","🌳","🌴","🌱","🌿","☘️","🍀","🍃","🍂","🍁","🍄","🐚","🪨","🌾","💐","🌷","🌹","🥀","🌺","🌸","🌼","🌻","🌞","🌝","🌛","🌜","🌚","🌕","🌖","🌗","🌘","🌑","🌒","🌓","🌔","🌙","🌎","🌍","🌏","🪐","💫","⭐️","🌟","✨","⚡️","☄️","💥","🔥","🌪","🌈","☀️","🌤","⛅️","🌥","☁️","🌦","🌧","⛈","🌩","🌨","❄️","☃️","⛄️","🌬","💨","💧","💦","☔️","☂️","🌊"], 
-        "Objects & Symbols": ["⌚️","📱","💻","⌨️","🖥","🖨","🖱","📷","📸","📹","🎥","📞","☎️","📺","📻","🎙","🧭","⏱","⏲","⏰","🕰","⌛️","⏳","🔋","🔌","💡","🔦","🕯","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🧰","🔧","🔨","⚒","🛠","⛏","🔩","⚙️","🧱","⛓","🧲","🔫","💣","🧨","🪓","🔪","🗡","⚔️","🛡","🚬","⚰️","🏺","🔮","📿","🧿","🔭","🔬","💊","💉","🩸","🧬","🦠","🧫","🧪","🌡","🧹","🧺","🧻","🚽","🚰","🚿","🛁","🛀","🧼","🧽","🪒","🧴","🛎","🔑","🗝","🚪","🪑","🛋","🛏","🛌","🧸","🖼","🪞","🪟","🛍","🛒","🎁","🎈","🎀","🪄","🎊","🎉","🎎","🏮","🎐","🧧","✉️","📩","📨","📧","💌","📥","📤","📦","🏷","📫","📬","📭","📮","📜","📃","📄","📑","🧾","📊","📈","📉","🗒","🗓","📆","📅","🗑","🗃","🗳","🗄","📋","📁","📂","🗂","🗞","📰","📓","📔","📒","📕","📗","📘","📙","📚","📖","🔖","🧷","🔗","📎","🖇","📐","📏","🧮","📌","📍","✂️","🖊","🖋","✒️","🖌","🖍","📝","✏️","🔍","🔎","🔐","🔒","🔓","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❣️","💕","💞","💓","💗","💖","💘","💝"] 
+        "Animals & Nature": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🐢","🐍","🦎","🦖","🐙","🦑","🦐","🦀","🐡","🐠","🐟","🐬","🐳","🦈","🐊","🐅","🐆","zebra","🦍","🐘","🦛","🦏","🐪","🦒","🦘","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🐐","🦌","🐕","🐈","🐓","🦃","🦚","🦜","🦢","🕊","🐇","🦝","🦨","🦡","🦦","🦥","🐁","🐀","🐿","🦔","🐉","🐲","🌵","🎄","🌲","🌳","🌴","🌱","🌿","☘️","🍀","🍃","🍂","🍁","🍄","🐚","🪨","🌾","💐","🌷","🌹","🥀","🌺","🌸","🌼","🌻","🌞","🌝","🌛","🌜","🌚","🌕","🌖","🌗","🌘","🌑","🌒","🌓","🌔","🌙","🌎","🌍","🌏","🪐","💫","⭐️","🌟","✨","⚡️","☄️","💥","🔥","🌪","🌈","☀️","🌤","⛅️","🌥","☁️","🌦","🌧","⛈","🌩","🌨","❄️","☃️","⛄️","🌬","💨","💧","💦","☔️","☂️","🌊"], 
+        "Objects & Symbols": ["⌚️","📱","💻","⌨️","🖥","🖨","🖱","📷","📸","📹","🎥","📞","☎️","📺","📻","🎙","🧭","⏱","⏲","⏰","🕰","⌛️","⏳","🔋","🔌","💡","🔦","🕯","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🧰","🔧","🔨","⚒","🛠","⛏","🔩","⚙️","🧱","⛓","🧲","🔫","💣","🧨","🪓","🔪","🗡","⚔️","🛡","🚬","⚰️","🏺","🔮","📿","🧿","🔭","🔬","💊","💉","🩸","🧬","🦠","🧫","🧪","🌡","🧹","🧺","🧻","Toilet","🚰","Shower","Bathtub","Bath","Soap","Sponge","Razor","Lotion","Bell","Keys","🗝","Door","Chair","Sofa","Bed","Sleeping","Teddy","Frame","Mirror","Window","Shopping","Cart","Gift","Balloon","Ribbon","Magic","Confetti","Party","Doll","Lantern","Wind","RedEnvelope","Envelope","InboxEnvelope","SendEnvelope","Email","HeartEnvelope","Inbox","Outbox","Package","Tag","Mailbox","OpenMailbox","ClosedMailbox","Postbox","Scroll","Page","Doc","Tabs","Receipt","BarChart","UpChart","DownChart","Notebook","Calendar","DateCalendar","Schedule","Bin","Organizer","Ballot","Cabinet","Clipboard","Folder","OpenFolder","Directories","Newspaper","News","Journal","Diary","YellowBook","RedBook","GreenBook","BlueBook","OrangeBook","Books","OpenBook","Bookmark","Pin","Link","Paperclip","Paperclips","Triangle","Ruler","Abacus","Thumbtack","Pushpin","Scissors","Pen","FountainPen","CalligraphyPen","Paintbrush","Crayon","NotebookPen","Pencil","Search","Magnifier","Keylock","Lock","Unlock","Heart","OrangeHeart","YellowHeart","GreenHeart","BlueHeart","PurpleHeart","BlackHeart","WhiteHeart","BrownHeart","BrokenHeart","HeartExclamation","Hearts","SpinningHearts","BeatingHeart","GrowingHeart","SparklingHeart","Cupid","GiftHeart"] 
     },
     'en': { 
         "Smileys & Emotion": ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","😋","😎","😍","😘","🥰","🥲","☺️","🤗","🤩","🤔","🤨","😐","😑","😶","🙄","😏","😣","😥","😮","🤐","😯","😪","😫","🥱","😴","😌","😛","😜","😝","🤤","😒","😓","😔","😕","🙃","🤑","😲","☹️","🙁","😖","😞","😟","😤","😢","😭","😦","😧","😨","😩","🤯","😬","😰","😱","🥵","🥶","😳","🤪","😵","🥴","😠","😡","🤬"], 
         "Gestures & People": ["👋","🤚","🖐","✋","🖖","👌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","👇","☝️","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","✍️","💅","🤳","💪","👀","👁","👅","👄","💋","🧠","🫀"], 
-        "Animals & Nature": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","TURTLE","🐍","🦎","🦖","🐙","🦑","🦐","🦀","🐡","🐠","🐟","🐬","🐳","🦈","🐊","🐅","🐆","🦓","🦍","🐘","🦛","🦏","🐪","🦒","🦘","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🐐","🦌","🐕","🐈","🐓","🦃","🦚","🦜","🦢","🕊","🐇","🦝","🦨","🦡","🦦","🦥","🐁","🐀","🐿","🦔","🐉","🐲","🌵","🎄","🌲","🌳","🌴","🌱","🌿","☘️","🍀","🍃","🍂","🍁","🍄","🐚","🪨","🌾","💐","🌷","🌹","🥀","🌺","🌸","🌼","🌻","🌞","🌝","🌛","🌜","🌚","🌕","🌖","🌗","🌘","🌑","🌒","🌓","🌔","🌙","🌎","🌍","🌏","🪐","💫","⭐️","🌟","✨","⚡️","☄️","💥","🔥","🌪","🌈","☀️","🌤","⛅️","🌥","☁️","🌦","🌧","⛈","🌩","🌨","❄️","☃️","⛄️","🌬","💨","💧","💦","☔️","☂️","🌊"], 
-        "Objects & Symbols": ["⌚️","📱","💻","⌨️","🖥","🖨","🖱","📷","📸","📹","🎥","📞","☎️","📺","📻","🎙","🧭","⏱","⏲","⏰","🕰","⌛️","⏳","🔋","🔌","💡","🔦","🕯","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🧰","🔧","🔨","⚒","🛠","⛏","🔩","⚙️","🧱","⛓","🧲","🔫","💣","🧨","🪓","🔪","🗡","⚔️","🛡","🚬","⚰️","🏺","🔮","📿","🧿","🔭","🔬","💊","💉","🩸","🧬","🦠","🧫","🧪","🌡","🧹","🧺","🧻","🚽","🚰","🚿","🛁","🛀","🧼","🧽","🪒","🧴","🛎","🔑","🗝","🚪","🪑","🛋","🛏","🛌","🧸","🖼","🪞","🪟","🛍","🛒","🎁","🎈","🎀","🪄","🎊","🎉","🎎","🏮","🎐","🧧","✉️","📩","📨","📧","💌","📥","📤","📦","🏷","📫","📬","📭","📮","📜","📃","📄","📑","🧾","📊","📈","📉","🗒","🗓","📆","📅","🗑","🗃","🗳","🗄","📋","📁","📂","🗂","🗞","📰","📓","📔","📒","📕","📗","📘","📙","📚","📖","🔖","🧷","🔗","📎","🖇","📐","📏","🧮","📌","📍","✂️","🖊","🖋","✒️","🖌","🖍","📝","✏️","🔍","🔎","🔐","🔒","🔓","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❣️","💕","💞","💓","💗","💖","💘","💝"] 
+        "Animals & Nature": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🐢","🐍","🦎","🦖","🐙","🦑","🦐","crab","🐡","🐠","🐟","🐬","🐳","🦈","🐊","🐅","🐆","zebra","🦍","🐘","🦛","🦏","🐪","🦒","🦘","buffalo","ox","cow","🐎","🐖","ram","sheep","goat","deer","🐕","🐈","rooster","turkey","peacock","parrot","swan","dove","🐇","raccoon","skunk","badger","otter","sloth","mice","rat","squirrel","hedgehog","dragon","dragon_face","cactus","christmas_tree","evergreen_tree","deciduous_tree","palm_tree","seedling","herb","shamrock","four_leaf_clover","maple_leaf","fallen_leaf","leaf","mushroom","shell","rock","sheaf_of_rice","bouquet","tulip","rose","wilted_flower","hibiscus","cherry_blossom","blossom","sunflower","sun","full_moon_with_face","first_moon_with_face","last_moon_with_face","new_moon_with_face","full_moon","waxing_gibbous_moon","first_quarter_moon","waxing_crescent_moon","new_moon","waning_crescent_moon","last_quarter_moon","waning_gibbous_moon","crescent_moon","globe_americas","globe_africa","globe_asia","ringed_planet","dizzy","star","star2","sparkles","sparkler","zap","comet","boom","fire","tornado","rainbow","sunny","partly_sunny","partly_sunny_rain","cloud","cloud_rain","thunder_cloud_rain","cloud_lightning","snow_cloud","snowflake","snowman","snowman_without_snow","wind_face","dash","droplet","sweat_drops","umbrella","umbrella_with_rain_drops","ocean"], 
+        "Objects & Symbols": ["⌚️","📱","💻","⌨️","🖥","🖨","🖱","📷","📸","📹","🎥","📞","☎️","📺","📻","🎙","🧭","⏱","⏲","⏰","🕰","⌛️","⏳","🔋","🔌","💡","🔦","🕯","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🧰","🔧","🔨","⚒","🛠","⛏","🔩","⚙️","🧱","⛓","🧲","🔫","💣","🧨","🪓","🔪","🗡","⚔️","🛡","🚬","⚰️","🏺","🔮","📿","🧿","🔭","🔬","💊","💉","🩸","🧬","🦠","🧫","🧪","🌡","🧹","🧺","🧻","Toilet","🚰","Shower","Bathtub","Bath","Soap","Sponge","Razor","Lotion","Bell","Keys","🗝","Door","Chair","Sofa","Bed","Sleeping","Teddy","Frame","Mirror","Window","Shopping","Cart","Gift","Balloon","Ribbon","Magic","Confetti","Party","Doll","Lantern","Wind","RedEnvelope","Envelope","InboxEnvelope","SendEnvelope","Email","HeartEnvelope","Inbox","Outbox","Package","Tag","Mailbox","OpenMailbox","ClosedMailbox","Postbox","Scroll","Page","Doc","Tabs","Receipt","BarChart","UpChart","DownChart","Notebook","Calendar","DateCalendar","Schedule","Bin","Organizer","Ballot","Cabinet","Clipboard","Folder","OpenFolder","Directories","Newspaper","News","Journal","Diary","YellowBook","RedBook","GreenBook","BlueBook","OrangeBook","Books","OpenBook","Bookmark","Pin","Link","Paperclip","Paperclips","Triangle","Ruler","Abacus","Thumbtack","Pushpin","Scissors","Pen","FountainPen","CalligraphyPen","Paintbrush","Crayon","NotebookPen","Pencil","Search","Magnifier","Keylock","Lock","Unlock","Heart","OrangeHeart","YellowHeart","GreenHeart","BlueHeart","PurpleHeart","BlackHeart","WhiteHeart","BrownHeart","BrokenHeart","HeartExclamation","Hearts","SpinningHearts","BeatingHeart","GrowingHeart","SparklingHeart","Cupid","GiftHeart"] 
     }
 });
 
@@ -85,7 +109,19 @@ const langUIElements = {
     btnReplaceBtn: document.getElementById('btn-replace-btn'),
     btnHr: document.getElementById('btn-hr'),
     emojiGrid: document.getElementById('emoji-grid'),
-    langToggle: document.getElementById(BTN_LANG_TOGGLE_ID)
+    langToggle: document.getElementById(BTN_LANG_TOGGLE_ID),
+    
+    btnOpenRaw: document.getElementById('btn-open-raw'),
+    menuExportStd: document.getElementById('menu-export-std'),
+    menuExportNotion: document.getElementById('menu-export-notion'),
+    
+    btnCopyUniversal: document.getElementById('btn-copy-universal'),
+    btnCopyRaw: document.getElementById('btn-copy-raw'),
+
+    tConfirmClear: document.getElementById('t-confirm-clear'),
+    msgConfirmClear: document.getElementById('msg-confirm-clear'),
+
+    tHrModal: document.getElementById('t-hr-modal')
 };
 
 // =========================================================================
@@ -159,6 +195,18 @@ export function applyLanguage(updateCounter) {
     if (langUIElements.btnFindNext) langUIElements.btnFindNext.innerText = t.btnFindNxt;
     if (langUIElements.btnReplaceBtn) langUIElements.btnReplaceBtn.innerText = t.btnRep;
     if (langUIElements.btnHr) langUIElements.btnHr.title = t.hr;
+    
+    if (langUIElements.btnOpenRaw) langUIElements.btnOpenRaw.title = t.btnOpenRaw;
+    if (langUIElements.menuExportStd) langUIElements.menuExportStd.innerText = t.menuExportStd;
+    if (langUIElements.menuExportNotion) langUIElements.menuExportNotion.innerText = t.menuExportNotion;
+
+    if (langUIElements.btnCopyUniversal) langUIElements.btnCopyUniversal.innerText = t.btnCopyUniversal;
+    if (langUIElements.btnCopyRaw) langUIElements.btnCopyRaw.innerText = t.btnCopyRaw;
+
+    if (langUIElements.tConfirmClear) langUIElements.tConfirmClear.innerText = t.tConfirmClear;
+    if (langUIElements.msgConfirmClear) langUIElements.msgConfirmClear.innerText = t.msgConfirmClear;
+
+    if (langUIElements.tHrModal) langUIElements.tHrModal.innerText = t.tHrModal;
 
     renderEmojis(currentLang);
 

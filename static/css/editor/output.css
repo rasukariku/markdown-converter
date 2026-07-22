@@ -25,6 +25,7 @@ Rendered Output Area (WYSIWYG Markdown Preview & Editor)
 }
 
 #rendered-output:focus {
+    /* Visuals */
     outline: none;
 }
 
@@ -34,6 +35,15 @@ Rendered Output Area (WYSIWYG Markdown Preview & Editor)
     opacity: 0.5;
     pointer-events: none;
     cursor: text;
+}
+
+/* Overrides Word inline layout limits to force full-width container expansion */
+#rendered-output p,
+#rendered-output div,
+#rendered-output section {
+    max-width: 100% !important;
+    width: auto !important;
+    box-sizing: border-box;
 }
 
 /* =====================================================================
@@ -171,30 +181,38 @@ Obsidian-like Document Typography
 }
 
 /* =====================================================================
-   Garis Pembatas (HR) - Pure CSS Collapse/Expand (Obsidian Pattern)
+   Horizontal Rule Component - Dynamic Rule Character Renderer
    ===================================================================== */
 .hr-raw-line {
+    /* Typography */
     font-family: 'Consolas', 'Courier New', monospace !important;
     font-size: 14.5px;
     color: #c084fc !important;
-    margin: 24px auto;
     text-align: center;
+    
+    /* Box Model */
+    margin: 24px auto;
     outline: none;
-    position: relative;
     display: block;
     width: 100%;
     box-sizing: border-box;
+    
+    /* Positioning & Interaction */
+    position: relative;
     cursor: text;
 }
 
 /* Out of focus: hide characters and draw visual line */
 .hr-raw-line:not(.hr-focused) {
     color: transparent !important;
-    height: 6px;
+    -webkit-text-fill-color: transparent !important;
+    font-size: 0px !important;
+    line-height: 0 !important;
+    height: 12px;
     overflow: hidden;
 }
 
-/* Menggambar visual garis pembatas tunggal (default solid) saat blured */
+/* DEFAULT: Single Solid Line (---) */
 .hr-raw-line:not(.hr-focused)::after {
     content: '';
     position: absolute;
@@ -207,38 +225,49 @@ Obsidian-like Document Typography
     transition: background-color 0.2s;
 }
 
-/* KUNCI PERBAIKAN: Transisi menjadi Garis Ganda (Double Line) Obsidian jika diinput === */
+/* Double Line when === is inputted */
 .hr-raw-line[data-chars*="="]:not(.hr-focused)::after {
     height: 4px;
     border-top: 2px solid var(--border-color);
     border-bottom: 2px solid var(--border-color);
-    background-color: transparent !important; /* Buang latar belakang solid agar garis ganda sejajar terlihat jelas */
+    background-color: transparent !important;
 }
 
-/* Transisi menjadi Garis Dotted jika diinput *** */
+/* Dotted Line when *** is inputted */
 .hr-raw-line[data-chars*="*"]:not(.hr-focused)::after {
     height: 0;
     border-top: 2px dotted var(--border-color);
     background-color: transparent !important;
 }
 
-/* Hover effect ketika garis didekati */
+/* Dashed Line when ___ is inputted */
+.hr-raw-line[data-chars*="_"]:not(.hr-focused)::after {
+    height: 0;
+    border-top: 2px dashed var(--border-color);
+    background-color: transparent !important;
+}
+
+/* Hover effect */
 .hr-raw-line:hover:not(.hr-focused)::after {
+    border-color: #8b5cf6 !important;
     background-color: #8b5cf6 !important;
 }
 
-/* KUNCI PERBAIKAN UTAMA: Menggambar focused state persis seperti kartu ungu pengetikan Obsidian */
+/* Focused State: Renders purple Obsidian typing block */
 .hr-raw-line.hr-focused {
     display: block !important;
+    font-size: 14.5px !important;
+    line-height: 1.5 !important;
     color: #ffffff !important;
-    background-color: #3e2d54 !important; /* Warna ungu gelap persis screenshot */
+    -webkit-text-fill-color: #ffffff !important;
+    background-color: #3e2d54 !important;
     border-radius: 4px;
     padding: 6px 16px;
-    width: max-content !important; /* Membungkus pas karakter yang diketik */
+    width: max-content !important;
     margin: 16px auto;
     height: auto !important;
     overflow: visible !important;
-    caret-color: #ffffff !important; /* Kursor garis ketik putih vertikal berkedip */
+    caret-color: #ffffff !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
@@ -247,49 +276,89 @@ Obsidian-like Document Typography
 }
 
 /* =====================================================================
-   Obsidian-Style Interactive Math Components (REPAIRED & UNIFIED)
+   Horizontal Rule Selector Modal Options
+   ===================================================================== */
+.hr-select-btn {
+    /* Box Model */
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+    
+    /* Visuals */
+    background-color: var(--bg-toolbar);
+    color: var(--text-main);
+    
+    /* Interaction */
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.hr-select-btn:hover {
+    background-color: var(--btn-tool-hover);
+    border-color: #8b5cf6;
+}
+
+/* =====================================================================
+   Obsidian-Style Interactive Math Components
    ===================================================================== */
 
-/* Completely hide raw LaTeX source lines inside the editor */
 .math-raw-line {
     display: none !important;
 }
 
-/* Standardized Math Wrapper base layout */
 .math-wrapper {
+    /* Positioning */
     position: relative;
-    display: inline-block;
     vertical-align: middle;
+    
+    /* Layout */
+    display: inline-block;
+    box-sizing: border-box;
+    
+    /* Box Model */
     border: 1px solid var(--border-color);
-    background-color: var(--bg-main);
     border-radius: 6px;
     padding: 2px 8px;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    
+    /* Visuals */
+    background-color: var(--bg-main);
+    
+    /* Interaction */
     cursor: pointer;
-    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .inline-math-wrapper {
+    /* Box Model */
     margin: 0 4px;
 }
 
-/* Clean up display math box stretch limits to ensure the hover outline aligns perfectly */
 .display-math-wrapper {
+    /* Layout */
     display: block !important;
     width: fit-content !important;
     max-width: 100% !important;
+    text-align: center !important;
+    
+    /* Box Model */
     margin: 16px auto !important;
     padding: 12px 24px !important;
-    text-align: center !important;
 }
 
-/* Unified hover transitions for the solid inner box */
 .math-wrapper:hover {
-    background-color: rgba(139, 92, 246, 0.08) !important; /* Subtle purple background tint */
-    border-color: #8b5cf6 !important; /* Smooth solid gray-to-purple border transition */
+    /* Visuals */
+    background-color: rgba(139, 92, 246, 0.08) !important;
+    border-color: #8b5cf6 !important;
 }
 
-/* Pixel-perfect outer purple rounded-dashed outline using pseudo-elements */
+/* Outer purple rounded-dashed outline using pseudo-elements */
 .math-wrapper::after {
     content: '';
     position: absolute;
@@ -304,109 +373,134 @@ Obsidian-like Document Typography
     transition: opacity 0.2s ease;
 }
 
-/* Fade in the dashed outline box on hover */
+/* Hover Transition Rule Block for Outer Dashed Border */
 .math-wrapper:hover::after {
     opacity: 1;
 }
 
 .math-preview-rendered {
+    /* Layout */
     display: inline-block;
     max-width: 100%;
 }
 
 /* =====================================================================
-   LaTeX Floating Editor Popup (Obsidian-Style Pop-up Pattern)
+   LaTeX Floating Editor Popup
    ===================================================================== */
 .math-popup-container {
-    display: none;
+    /* Positioning */
     position: absolute;
+    z-index: 100000;
+    
+    /* Box Model */
     width: 400px;
-    height: 200px; /* Symmetrical consistent default size */
+    height: 200px;
     min-width: 250px;
     min-height: 140px;
-    background-color: #1e1e2e; /* Obsidian dark theme background */
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    z-index: 100000;
     padding: 12px;
     box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     
-    /* Flexbox Container architecture for seamless resizing alignment */
+    /* Layout */
+    display: none;
     flex-direction: column;
-    gap: 8px; /* Clean grid separation */
-    
-    resize: both;
+    gap: 8px;
     overflow: hidden;
+    resize: both;
+    
+    /* Typography & Visuals */
+    font-family: 'Poppins', sans-serif;
+    background-color: #1e1e2e;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* Active transition settings */
 .math-popup-container.active {
+    /* Layout & Animation */
     display: flex;
     animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .math-popup-toolbar {
+    /* Box Model */
     height: 24px;
+    
+    /* Layout */
     display: flex;
     justify-content: space-between;
     align-items: center;
+    
+    /* Interaction */
     user-select: none;
-    cursor: grab; /* Drag cursor */
+    cursor: grab;
 }
 
 .math-popup-toolbar:active {
+    /* Interaction */
     cursor: grabbing;
 }
 
 .math-popup-title {
+    /* Typography */
     font-size: 11px;
     font-weight: 700;
-    color: #8b5cf6; /* Elegant purple */
+    color: #8b5cf6;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .math-popup-btn {
-    background: transparent;
-    border: none;
-    color: #a0a0a0;
+    /* Box Model */
     padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    
+    /* Typography */
     font-size: 11px;
     font-weight: 600;
-    border-radius: 4px;
+    color: #a0a0a0;
+    
+    /* Visuals & Interaction */
+    background: transparent;
     cursor: pointer;
     transition: background-color 0.15s, color 0.15s;
 }
 
 .math-popup-btn:hover {
+    /* Visuals */
     background-color: #3e4446;
     color: #ffffff;
 }
 
 #math-popup-close:hover {
+    /* Visuals */
     color: #ff4d4d;
     background-color: rgba(255, 77, 77, 0.1);
 }
 
 #math-popup-textarea {
-    flex-grow: 1; /* Automatically expand to fill vertical room */
+    /* Layout */
+    flex-grow: 1;
     width: 100%;
-    height: 0; /* Let flex-grow fully calculate height without height-calculation offsets */
-    background-color: #11111b;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: #f1739c; /* Pinkish syntax color matching Screenshot 2 */
-    font-family: 'Consolas', 'Courier New', monospace !important;
-    font-size: 13.5px;
+    height: 0;
+    
+    /* Box Model */
     padding: 8px;
     box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
     outline: none;
-    resize: none; /* Resize handled completely by the parent element container */
-    caret-color: #c084fc; /* Purple caret */
+    resize: none;
+    
+    /* Typography & Visuals */
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    font-size: 13.5px;
+    color: #f1739c;
+    background-color: #11111b;
+    caret-color: #c084fc;
 }
 
 #math-popup-textarea:focus {
+    /* Visuals */
     border-color: #8b5cf6;
 }

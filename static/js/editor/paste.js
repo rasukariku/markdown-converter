@@ -5,7 +5,7 @@ import { sanitizeAIText, syncRenderedToRaw, parseMarkdownWithMath } from '../cor
 // MODULE-LEVEL CONSTANTS
 // =========================================================================
 
-// Jeda asinkron untuk memastikan operasi penempelan HTML (insertHTML) telah tuntas sebelum proses parsing gaya
+// Asynchronous delay to ensure paste execution completes before layout sanitization
 const PASTE_SYNC_DELAY_MS = 50;
 
 // =========================================================================
@@ -13,15 +13,14 @@ const PASTE_SYNC_DELAY_MS = 50;
 // =========================================================================
 
 /**
- * Menginisialisasi pencegat penempelan teks (Paste Interceptors) untuk editor WYSIWYG
- * visual maupun textarea modal markdown mentah.
+ * Initializes paste event interceptors for the visual editor and raw markdown textareas.
  * 
- * @param {object} standardTurndown - Instansi dari layanan Turndown standar.
- * @param {Function} updateCounter - Callback untuk memperbarui statistik dokumen.
+ * @param {object} standardTurndown - Standard Turndown service instance.
+ * @param {Function} updateCounter - Callback to update document stats.
  */
 export function initializePasteInterceptors(standardTurndown, updateCounter) {
     
-    // 1. Paste Interceptor untuk Editor Visual (WYSIWYG)
+    // 1. Paste Interceptor for WYSIWYG visual editor
     dom.renderedOutput.addEventListener('paste', function(e) {
         e.preventDefault();
         e.stopImmediatePropagation();
@@ -29,15 +28,15 @@ export function initializePasteInterceptors(standardTurndown, updateCounter) {
         const clipboardData = e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData);
         const plainData = clipboardData ? clipboardData.getData('text/plain') : '';
         
-        // Lakukan sanitasi AI pada teks biasa yang ditempelkan
+        // Execute AI formatting sanitization on pasted plain text
         const processedText = sanitizeAIText(plainData);
         
-        // Gunakan parser isolasi matematika universal untuk merender HTML secara aman
+        // Render equations securely without losing LaTeX backslash syntax
         const parsedHTML = parseMarkdownWithMath(processedText);
         
         document.execCommand('insertHTML', false, parsedHTML);
         
-        // Pembersihan gaya inline tak dikenal yang mungkin terbawa dari penempelan teks luar (Rich Text)
+        // Clear inline style overrides that may be carried over from external editors
         setTimeout(() => {
             dom.renderedOutput.querySelectorAll('*').forEach((el) => {
                 if (el.style.margin) el.style.margin = '';
@@ -45,7 +44,7 @@ export function initializePasteInterceptors(standardTurndown, updateCounter) {
                 if (el.style.lineHeight) el.style.lineHeight = '';
             });
             
-            // KUNCI PERBAIKAN: Berikan pengaman asinkronisasi (Null-Safety) untuk merender MathJax saat aktivitas paste
+            // FIXED: Defensively handle asynchronous MathJax typesetting after a paste event
             if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
                 window.MathJax.typesetPromise([dom.renderedOutput]).then(() => {
                     dom.renderedOutput.querySelectorAll('mjx-container').forEach((node) => { 
@@ -61,7 +60,7 @@ export function initializePasteInterceptors(standardTurndown, updateCounter) {
         }, PASTE_SYNC_DELAY_MS);
     });
 
-    // 2. Paste Interceptor untuk Textarea Markdown Mentah (Modal)
+    // 2. Paste Interceptor for raw markdown textareas (Modal input)
     dom.rawMarkdownInput.addEventListener('paste', function(e) {
         e.preventDefault();
         
@@ -73,11 +72,11 @@ export function initializePasteInterceptors(standardTurndown, updateCounter) {
         const start = target.selectionStart;
         const end = target.selectionEnd;
         
-        // Sisipkan teks terproses tepat di posisi kursor aktif
+        // Insert processed text exactly at the current cursor position
         target.value = target.value.substring(0, start) + processedText + target.value.substring(end);
         target.selectionStart = target.selectionEnd = start + processedText.length;
         
-        // Kunci Perbaikan: Sinkronisasikan secara instan hasil paste markdown mentah ke editor visual
+        // FIXED: Immediately synchronize raw markdown changes into the WYSIWYG editor
         syncRawToRendered(updateCounter);
     });
 }

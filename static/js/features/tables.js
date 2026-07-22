@@ -82,23 +82,55 @@ export function initializeTables(syncRenderedToRaw) {
             c.style.textAlign = 'left';
         });
 
-        try {
-            const htmlBlob = new Blob([tableClone.outerHTML], { type: 'text/html' });
-            const textBlob = new Blob([activeTableElement.innerText], { type: 'text/plain' });
-            
-            await navigator.clipboard.write([
-                new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob })
-            ]);
+        // FIXED: Execute fallback copy operation if the document is running in an unsecure context (HTTP LAN)
+        if (navigator.clipboard && window.isSecureContext && window.ClipboardItem) {
+            try {
+                const htmlBlob = new Blob([tableClone.outerHTML], { type: 'text/html' });
+                const textBlob = new Blob([activeTableElement.innerText], { type: 'text/plain' });
+                
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob })
+                ]);
 
+                triggerCopySuccess();
+            } catch (err) {
+                console.warn('Modern ClipboardItem failed, forcing legacy execution...', err);
+                fallbackCopyTable();
+            }
+        } else {
+            fallbackCopyTable();
+        }
+
+        function triggerCopySuccess() {
             activeTableElement.classList.add('copy-flash');
             setTimeout(() => activeTableElement.classList.remove('copy-flash'), COPY_FLASH_DURATION_MS);
 
             const originalText = btnCopyTable.innerHTML;
             btnCopyTable.innerHTML = COPY_FEEDBACK_TEXT;
             setTimeout(() => { btnCopyTable.innerHTML = originalText; }, COPY_FEEDBACK_DURATION_MS);
-        } catch (err) {
-            console.error('Failed to copy Table', err);
-            alert('Failed to copy table!');
+        }
+
+        function fallbackCopyTable() {
+            // Selects the structural nodes to perform document level selection copies
+            const range = document.createRange();
+            range.selectNode(activeTableElement);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    triggerCopySuccess();
+                } else {
+                    alert('Failed to copy table!');
+                }
+            } catch (err) {
+                console.error('Fallback table copy operation rejected:', err);
+                alert('Failed to copy table!');
+            } finally {
+                sel.removeAllRanges();
+            }
         }
     };
 
@@ -121,7 +153,6 @@ export function initializeTables(syncRenderedToRaw) {
     btnAddCol.onclick = () => {
         if (!activeTableElement || !activeTableCell) return;
         
-        // Use prototype method for slight performance gain over Array.from
         const index = Array.prototype.indexOf.call(activeTableCell.parentNode.children, activeTableCell);
         
         activeTableElement.querySelectorAll('tr').forEach((tr) => {

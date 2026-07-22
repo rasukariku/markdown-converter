@@ -81,7 +81,6 @@ function ensureMathPopupExists() {
         if (!activeMathContainer) return;
         
         const newLatex = textarea.value.trim();
-        // Find wrapper from activeMathContainer context
         const wrapper = activeMathContainer.closest ? activeMathContainer.closest('.math-wrapper') : null;
         if (wrapper) {
             updateMathElementInPlace(wrapper, newLatex);
@@ -178,9 +177,6 @@ function positionPopup(targetEl, popupEl) {
     popupEl.style.right = 'auto';
 }
 
-/**
- * REPAIRED: Updates inner elements without destroying wrapper parent nodes.
- */
 function updateMathElementInPlace(wrapper, newLatex) {
     const isDisplay = wrapper.getAttribute('data-math-display') === 'true';
     const rawLine = wrapper.querySelector('.math-raw-line');
@@ -188,14 +184,11 @@ function updateMathElementInPlace(wrapper, newLatex) {
     
     if (!rawLine || !previewContainer) return;
     
-    // 1. Instantly update hidden plain text field to maintain consistency
     rawLine.textContent = newLatex;
     
-    // 2. Set raw LaTeX inside compile preview container
     const formatted = isDisplay ? `$$ ${newLatex} $$` : `$${newLatex}$`;
     previewContainer.innerHTML = formatted;
     
-    // 3. Compile visually
     if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
         window.MathJax.typesetPromise([previewContainer]).then(() => {
             previewContainer.querySelectorAll('mjx-container').forEach(node => {
@@ -224,9 +217,7 @@ export function initializeLivePreview() {
 
     ensureMathPopupExists();
 
-    // click handler delegates clicks to math wrappers and intercepts HR element selection focuses
     dom.renderedOutput.addEventListener('click', (e) => {
-        // 1. Check math block elements click
         const wrapper = e.target.closest('.math-wrapper');
         if (wrapper) {
             e.preventDefault();
@@ -247,13 +238,13 @@ export function initializeLivePreview() {
             return;
         }
 
-        // KUNCI PERBAIKAN: Tangkap klik penunjuk di atas garis pembatas (HR) untuk memaksa fokus & mengaktifkan kelas fokus
+        // FIXED: Intercept selection click events over Horizontal Rules (HR) to force immediate focusing
         const hrRaw = e.target.closest('.hr-raw-line');
         if (hrRaw) {
             e.preventDefault();
             e.stopPropagation();
             
-            // Hapus kelas aktif dari HR lain yang tersisa di editor
+            // Clean up focused active classes from other horizontal lines
             dom.renderedOutput.querySelectorAll('.hr-raw-line.hr-focused').forEach(el => {
                 if (el !== hrRaw) el.classList.remove('hr-focused');
             });
@@ -261,11 +252,11 @@ export function initializeLivePreview() {
             hrRaw.classList.add('hr-focused');
             hrRaw.focus();
             
-            // Tempatkan selection kursor (caret) di posisi paling akhir tulisan
+            // Move insertion cursor caret to the end of the input field
             const sel = window.getSelection();
             const range = document.createRange();
             range.selectNodeContents(hrRaw);
-            range.collapse(false); // Ciutkan kursor ke paling kanan
+            range.collapse(false);
             sel.removeAllRanges();
             sel.addRange(range);
             return;
@@ -277,7 +268,7 @@ export function initializeLivePreview() {
         }
     });
 
-    // KUNCI PERBAIKAN UTAMA: Tambahkan pelacak perubahan seleksi global untuk mengaktifkan/menonaktifkan .hr-focused secara instan & lintas-platform
+    // FIXED: Bind selectionchange observers to toggle .hr-focused classes dynamically across all browsers
     document.addEventListener('selectionchange', () => {
         const sel = window.getSelection();
         if (sel.rangeCount > 0) {
@@ -289,14 +280,14 @@ export function initializeLivePreview() {
                 
                 const currentHr = node.closest ? node.closest('.hr-raw-line') : null;
                 
-                // Bersihkan kelas fokus dari seluruh HR lain yang tidak sedang disentuh kursor
+                // Strip the focused class from all inactive horizontal lines
                 dom.renderedOutput.querySelectorAll('.hr-raw-line.hr-focused').forEach(el => {
                     if (el !== currentHr) {
                         el.classList.remove('hr-focused');
                     }
                 });
                 
-                // Terapkan kelas fokus pada HR aktif saat ini
+                // Apply focus class to the active horizontal line
                 if (currentHr && dom.renderedOutput.contains(currentHr)) {
                     currentHr.classList.add('hr-focused');
                 }
@@ -304,14 +295,12 @@ export function initializeLivePreview() {
         }
     });
 
-    // Detect typings of --- / === / *** in real-time
     dom.renderedOutput.addEventListener('input', (e) => {
         let target = e.target;
         if (target.nodeType === 3) {
             target = target.parentNode;
         }
         
-        // Climb up to find block paragraph container safely
         while (target && target !== dom.renderedOutput && !['P', 'DIV'].includes(target.tagName)) {
             target = target.parentNode;
         }
@@ -339,7 +328,6 @@ export function initializeLivePreview() {
         }
     });
 
-    // Intercept Enter keypresses inside HR fields or raw matches
     dom.renderedOutput.addEventListener('keydown', (e) => {
         const key = e.key;
         let target = window.getSelection().anchorNode;
@@ -349,7 +337,6 @@ export function initializeLivePreview() {
             target = target.parentNode;
         }
         
-        // Climb up to block container
         while (target && target !== dom.renderedOutput && !['P', 'DIV'].includes(target.tagName)) {
             target = target.parentNode;
         }
@@ -357,7 +344,6 @@ export function initializeLivePreview() {
         if (target && target !== dom.renderedOutput) {
             const text = target.textContent.trim();
             
-            // Scenario A: User types manual divider characters and hits Enter
             if (key === 'Enter' && /^(-{3,}|\*{3,}|_{3,}|={3,})$/.test(text)) {
                 e.preventDefault();
                 
@@ -383,11 +369,10 @@ export function initializeLivePreview() {
                 return;
             }
             
-            // Scenario B: User is editing an already active HR block element and hits Enter
             if (key === 'Enter' && (target.classList.contains('hr-raw-line') || target.classList.contains('hr-focused'))) {
                 e.preventDefault();
                 
-                // Lepaskan kelas focused sebelum memindah kursor untuk memicu collapse instan
+                // Strip the focused class prior to moving the cursor to trigger instant visual collapse
                 target.classList.remove('hr-focused');
 
                 const newPara = document.createElement('p');

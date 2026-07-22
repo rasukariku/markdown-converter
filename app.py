@@ -1,67 +1,148 @@
 import os
 import tempfile
 import platform
+import csv
 import pypandoc
-from flask import Flask, request, send_file, render_template
+from flask import Flask, request, send_file, render_template, jsonify
 from docx import Document
 from utils.preprocessor import preprocess_markdown
 from utils.file_manager import get_buffer_and_cleanup
 from services.docx_formatter import format_docx_document
 from services.pdf_generator import generate_pdf_from_docx
 
-# 1. Tentukan path pandoc hanya jika berjalan di sistem Linux/Docker Hugging Face
+# 1. Define Pandoc executable path specifically for Hugging Face Linux/Docker environments
 if platform.system() == 'Linux':
     os.environ.setdefault('PYPANDOC_PANDOC', '/usr/bin/pandoc')
 
-# 2. KUNCI PERBAIKAN: Deteksi ketersediaan Pandoc secara adaptif & lintas-platform
+# 2. Dynamically detect and download Pandoc across platforms safely
 try:
     version = pypandoc.get_pandoc_version()
-    print(f"[INFO] Pandoc berhasil dimuat. Versi: {version}", flush=True)
+    print(f"[INFO] Pandoc loaded successfully. Version: {version}", flush=True)
 except OSError as e:
-    # Jika berjalan di Windows lokal, unduh Pandoc otomatis secara aman
     if platform.system() == 'Windows':
-        print("[INFO] Pandoc tidak ditemukan secara lokal. Mengunduh Pandoc untuk Windows...", flush=True)
+        print("[INFO] Pandoc not found locally. Downloading Pandoc for Windows...", flush=True)
         try:
             pypandoc.download_pandoc()
             version = pypandoc.get_pandoc_version()
-            print(f"[INFO] Pandoc berhasil diunduh dan dipasang secara lokal. Versi: {version}", flush=True)
+            print(f"[INFO] Pandoc successfully downloaded and installed locally. Version: {version}", flush=True)
         except Exception as download_err:
-            print(f"[FATAL ERROR] Gagal mengunduh Pandoc secara otomatis pada Windows: {str(download_err)}", flush=True)
+            print(f"[FATAL ERROR] Failed to download Pandoc automatically on Windows: {str(download_err)}", flush=True)
             raise download_err
     else:
-        # Jika di Docker/Linux, lempar error asli karena dilarang keras mengunduh saat runtime
-        print(f"[FATAL ERROR] Biner Pandoc tidak ditemukan di sistem Linux/Docker. Detail: {str(e)}", flush=True)
+        print(f"[FATAL ERROR] Pandoc binary not found in Linux/Docker environment. Details: {str(e)}", flush=True)
         raise e
 
 app = Flask(__name__)
 
-# Batasi jenis format keluaran yang diizinkan guna mencegah silent fallbacks
 ALLOWED_FORMATS = {'docx', 'pdf', 'html'}
+ALLOWED_UPLOAD_EXTENSIONS = {'.txt', '.md', '.docx', '.csv', '.xlsx'}
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@app.route('/upload_parse', methods=['POST'])
+def upload_parse():
+    """
+    Parses uploaded document files (.txt, .md, .docx, .csv, .xlsx) 
+    and converts them into standard Markdown text supporting LaTeX and tables.
+    """
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'No file payload attached.'}), 400
+        
+    uploaded_file = request.files['file']
+    filename = uploaded_file.filename
+    if not filename:
+        return jsonify({'status': 'error', 'message': 'Filename is empty.'}), 400
+
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ALLOWED_UPLOAD_EXTENSIONS:
+        return jsonify({'status': 'error', 'message': f'Unsupported file extension: {ext}'}), 400
+
+    try:
+        # Process Plain Text & Markdown files directly
+        if ext in ['.txt', '.md']:
+            raw_content = uploaded_file.read().decode('utf-8', errors='replace')
+            return jsonify({'status': 'success', 'markdown': raw_content})
+
+        # Process Microsoft Word (.docx) documents via Pandoc AST conversion with --wrap=none
+        elif ext == '.docx':
+            temp_docx = tempfile.NamedTemporaryFile(delete=False, suffix='.docx')
+            uploaded_file.save(temp_docx.name)
+            temp_docx.close()
+
+            # FIXED: Added --wrap=none to prevent Pandoc from inserting mid-sentence line breaks
+            markdown_output = pypandoc.convert_file(
+                temp_docx.name, 
+                'markdown', 
+                extra_args=['--wrap=none', '--mathjax']
+            )
+
+            if os.path.exists(temp_docx.name):
+                try:
+                    os.unlink(temp_docx.name)
+                except OSError:
+                    pass
+
+            return jsonify({'status': 'success', 'markdown': markdown_output})
+
+        # Process CSV Spreadsheets into Markdown Tables
+        elif ext == '.csv':
+            raw_text = uploaded_file.read().decode('utf-8', errors='replace')
+            reader = csv.reader(raw_text.splitlines())
+            rows = list(reader)
+            if not rows:
+                return jsonify({'status': 'success', 'markdown': ''})
+
+            md_table = []
+            md_table.append("| " + " | ".join(rows[0]) + " |")
+            md_table.append("| " + " | ".join(["---"] * len(rows[0])) + " |")
+            for row in rows[1:]:
+                md_table.append("| " + " | ".join(row) + " |")
+
+            return jsonify({'status': 'success', 'markdown': "\n".join(md_table)})
+
+        # Process Microsoft Excel (.xlsx) Spreadsheets into Markdown Tables
+        elif ext == '.xlsx':
+            try:
+                import openpyxl
+                workbook = openpyxl.load_workbook(uploaded_file)
+                sheet = workbook.active
+                rows = []
+                for row in sheet.iter_rows(values_only=True):
+                    if any(row):
+                        rows.append([str(val if val is not None else '') for val in row])
+                
+                if not rows:
+                    return jsonify({'status': 'success', 'markdown': ''})
+
+                md_table = []
+                md_table.append("| " + " | ".join(rows[0]) + " |")
+                md_table.append("| " + " | ".join(["---"] * len(rows[0])) + " |")
+                for row in rows[1:]:
+                    md_table.append("| " + " | ".join(row) + " |")
+
+                return jsonify({'status': 'success', 'markdown': "\n".join(md_table)})
+            except ImportError:
+                return jsonify({'status': 'error', 'message': 'openpyxl module is required for .xlsx parsing.'}), 400
+
+    except Exception as parse_error:
+        return jsonify({'status': 'error', 'message': f'Conversion error: {str(parse_error)}'}), 500
+
 @app.route('/convert', methods=['POST'])
 def convert():
-    # Sanitasi input dasar dari form pengiriman editor
     markdown_content = request.form.get('markdown_content', '').strip()
     file_format = request.form.get('file_format', 'docx').lower()
 
     if not markdown_content:
         return "Input text cannot be empty.", 400
 
-    # Validasi format file secara ketat
     if file_format not in ALLOWED_FORMATS:
-        return f"Unsupported file format. Allowed formats: {', '.join(sorted(ALLOWED_FORMATS))}.", 400
+        return f"Unsupported format. Allowed: {', '.join(sorted(ALLOWED_FORMATS))}.", 400
 
-    # Lakukan pra-pemrosesan teks markdown melalui utilitas preprocessor
     source_text, source_text_html = preprocess_markdown(markdown_content)
     input_format = 'markdown+raw_html'
 
-    # =========================================================================
-    # 1. EKSPOR FORMAT HTML
-    # =========================================================================
     if file_format == 'html':
         temp_html = tempfile.NamedTemporaryFile(delete=False, suffix='.html')
         temp_html.close()
@@ -87,29 +168,20 @@ def convert():
                     pass
             return f"HTML conversion error: {str(e)}", 500
 
-    # =========================================================================
-    # 2. EKSPOR FORMAT DOCX & PDF (Melalui Base DOCX Pandoc)
-    # =========================================================================
     temp_docx = tempfile.NamedTemporaryFile(delete=False, suffix='.docx')
     temp_docx.close()
     
     try:
-        # Konversi markdown dasar ke DOCX menggunakan template tango pandoc
         pypandoc.convert_text(
             source_text, 'docx', format=input_format, 
             outputfile=temp_docx.name, extra_args=['--highlight-style=tango']
         )
         doc = Document(temp_docx.name)
-        
-        # Format dokumen DOCX dengan standar penulisan rapi (Times New Roman, Left Alignment Math)
         doc = format_docx_document(doc)
         doc.save(temp_docx.name)
         
-        # Penanganan PDF: Mengonversi dokumen DOCX yang sudah rapi menjadi PDF
         if file_format == 'pdf':
             pdf_path, error = generate_pdf_from_docx(temp_docx.name, source_text_html, input_format)
-            
-            # Bersihkan file temporer DOCX setelah operasi generator PDF selesai
             if os.path.exists(temp_docx.name):
                 try:
                     os.unlink(temp_docx.name)
@@ -124,7 +196,6 @@ def convert():
                 download_name='Markdown_Export.pdf', mimetype='application/pdf'
             )
             
-        # Penanganan DOCX: Kirim file DOCX temporer langsung ke pengguna
         buffer = get_buffer_and_cleanup(temp_docx.name)
         return send_file(
             buffer, as_attachment=True, 
