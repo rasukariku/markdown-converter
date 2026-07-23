@@ -12,104 +12,141 @@ import { initializeDrag } from './features/drag.js';
 import { initializeAutosave } from './features/autosave.js';
 import { typeWriter, resetTypewriter } from './ui/typewriter.js';
 import { openWin, closeWin } from './ui/modals.js';
-import { applyLanguage, translations } from './ui/language.js';
+import { applyLanguage, translations, initializeThirdPartyEmojiPicker } from './ui/language.js';
 import { initializeFormatCycle, checkToolbarActive } from './ui/toolbar.js';
 
-// FIXED: Initialize live markdown preview events and theme configs
 import { initializeLivePreview } from './editor/live-preview.js';
 import './ui/theme.js';
 
 // =====================================================================
-// GLOBAL SCOPE BRIDGES & MODULAR INITIALIZATION
+// IMMEDIATE TOP-LEVEL GLOBAL BRIDGES (Prevents inline onclick exceptions)
+// =====================================================================
+window.openWin = openWin;
+window.closeWin = closeWin;
+window.toggleFullscreen = toggleFullscreen;
+window.toggleToolbar = toggleToolbar;
+window.resetTypewriter = resetTypewriter;
+
+// =====================================================================
+// FAULT-TOLERANT INITIALIZATION LOOP
 // =====================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Core Engine Initialization (Saves and registers standard, dedicated, and Notion-compatible Turndown engines)
-    const { standardTurndown, dedicatedExportTurndown, notionExportTurndown } = initializeTurndown();
     
-    // Stop initialization to prevent console clutter if the network blocks Turndown
-    if (!standardTurndown || !dedicatedExportTurndown || !notionExportTurndown) {
-        console.error("Startup cancelled. Critical dependencies not found.");
-        return;
+    // 1. Initialize Turndown Conversion Engines
+    let standardTurndown = null;
+    let dedicatedExportTurndown = null;
+    let notionExportTurndown = null;
+
+    try {
+        const engines = initializeTurndown();
+        standardTurndown = engines.standardTurndown;
+        dedicatedExportTurndown = engines.dedicatedExportTurndown;
+        notionExportTurndown = engines.notionExportTurndown;
+    } catch (err) {
+        console.error("[CRITICAL] Failed to initialize Turndown engines:", err);
     }
 
-    const updateCounter = initializeStats(translations);
+    // 2. Initialize Metrics Counter
+    let updateCounter = () => {};
+    try {
+        updateCounter = initializeStats(translations);
+    } catch (err) {
+        console.error("[WARN] Failed to initialize stats module:", err);
+    }
 
-    // 2. Bound Synchronization Functions (Isolates instance sync operations)
+    // 3. Bound Synchronization Functions
     const boundFormatDoc = (cmd, value) => formatDoc(
         cmd, 
         value, 
-        () => syncRenderedToRaw(standardTurndown, updateCounter), 
+        () => standardTurndown && syncRenderedToRaw(standardTurndown, updateCounter), 
         checkToolbarActive
     );
-    const boundSyncRenderedToRaw = () => syncRenderedToRaw(standardTurndown, updateCounter);
+    const boundSyncRenderedToRaw = () => standardTurndown && syncRenderedToRaw(standardTurndown, updateCounter);
 
-    // 3. Expose Bound Functions to the Global Window Scope for legacy inline elements
+    // 4. Update Window Scope Bridges with Bound Logic
     window.formatDoc = boundFormatDoc;
-    window.toggleFullscreen = toggleFullscreen;
     window.insertHorizontalRule = () => insertHorizontalRule(boundFormatDoc);
     window.setDirection = (dir) => setDirection(dir, boundFormatDoc, boundSyncRenderedToRaw);
-    window.toggleToolbar = toggleToolbar;
-    window.openWin = openWin;
-    window.closeWin = closeWin;
-    window.resetTypewriter = resetTypewriter;
-    
-    // FIXED: Expose sync function to the window scope for Live Preview triggers
     window.triggerSync = boundSyncRenderedToRaw;
 
-    // 4. Register Input Events to Trigger Real-Time Sync
-    if (dom.rawMarkdownInput) {
-        dom.rawMarkdownInput.addEventListener('input', () => syncRawToRendered(updateCounter));
-    }
-    if (dom.renderedOutput) {
-        dom.renderedOutput.addEventListener('input', boundSyncRenderedToRaw);
-    }
-
-    // 5. Initialize Feature, Live Preview, and Dialog Modules
-    initializeDialogs(boundFormatDoc);
-    initializeFindReplace(boundFormatDoc, boundSyncRenderedToRaw);
-    initializePasteInterceptors(standardTurndown, updateCounter);
-    initializeClipboard();
-    initializeTables(boundSyncRenderedToRaw);
-    
-    // Passes the Notion-mode Turndown instance to the exporter
-    initializeExport(dedicatedExportTurndown, notionExportTurndown, boundSyncRenderedToRaw, updateCounter);
-    
-    // FIXED: Safe Copy Bridge imported to allow raw text copy fallbacks over non-secure LAN environments
-    const copyRawBtn = document.getElementById('btn-copy-raw');
-    if (copyRawBtn) {
-        copyRawBtn.onclick = function() {
-            if (dom.rawMarkdownInput) {
-                const textToCopy = dom.rawMarkdownInput.value;
-                const currentLang = localStorage.getItem('appLang') || 'id';
-                
-                const feedbackText = currentLang === 'id' ? '✅ Berhasil Disalin!' : '✅ Copied!';
-                const originalText = currentLang === 'id' ? 'Salin Markdown' : 'Copy Markdown';
-                
-                safeCopyToClipboard(textToCopy, () => {
-                    copyRawBtn.innerText = feedbackText;
-                    setTimeout(() => {
-                        copyRawBtn.innerText = originalText;
-                    }, 2000);
-                }, (err) => {
-                    console.error("Secure copy action failed inside raw-copy module:", err);
-                });
-            }
-        };
+    // 5. Register Real-Time Input Sync Listeners
+    try {
+        if (dom.rawMarkdownInput) {
+            dom.rawMarkdownInput.addEventListener('input', () => syncRawToRendered(updateCounter));
+        }
+        if (dom.renderedOutput) {
+            dom.renderedOutput.addEventListener('input', boundSyncRenderedToRaw);
+        }
+    } catch (err) {
+        console.error("[WARN] Failed to attach input sync listeners:", err);
     }
 
-    initializeDrag();
-    initializeAutosave(boundSyncRenderedToRaw, updateCounter);
-    initializeFormatCycle();
-    initializeLivePreview(); // Triggers real-time math interactions and selection updates
+    // 6. Isolated Feature Module Initializations (Guarantees runtime fault isolation)
+    const modules = [
+        { name: 'Dialogs', fn: () => initializeDialogs(boundFormatDoc) },
+        { name: 'FindReplace', fn: () => initializeFindReplace(boundFormatDoc, boundSyncRenderedToRaw) },
+        { name: 'PasteInterceptors', fn: () => standardTurndown && initializePasteInterceptors(standardTurndown, updateCounter) },
+        { name: 'Clipboard', fn: () => initializeClipboard() },
+        { name: 'Tables', fn: () => initializeTables(boundSyncRenderedToRaw) },
+        { name: 'Export', fn: () => dedicatedExportTurndown && notionExportTurndown && initializeExport(dedicatedExportTurndown, notionExportTurndown, boundSyncRenderedToRaw, updateCounter) },
+        { name: 'Drag', fn: () => initializeDrag() },
+        { name: 'Autosave', fn: () => initializeAutosave(boundSyncRenderedToRaw, updateCounter) },
+        { name: 'FormatCycle', fn: () => initializeFormatCycle() },
+        { name: 'LivePreview', fn: () => initializeLivePreview() },
+        { name: 'EmojiPicker', fn: () => initializeThirdPartyEmojiPicker() }
+    ];
 
-    // 7. Initialize Typewriter and Apply Language Settings
-    typeWriter();
-    applyLanguage(updateCounter);
+    modules.forEach(mod => {
+        try {
+            mod.fn();
+        } catch (err) {
+            console.error(`[WARN] Failed to initialize module [${mod.name}]:`, err);
+        }
+    });
 
-    // 8. Load Draft from LocalStorage if Available
-    const savedDraft = localStorage.getItem('massivemark_draft_md');
-    if (savedDraft && dom.rawMarkdownInput) {
-        dom.rawMarkdownInput.value = savedDraft;
-        syncRawToRendered(updateCounter);
+    // 7. Register Raw Copy Modal Handler
+    try {
+        const copyRawBtn = document.getElementById('btn-copy-raw');
+        if (copyRawBtn) {
+            copyRawBtn.onclick = function() {
+                if (dom.rawMarkdownInput) {
+                    const textToCopy = dom.rawMarkdownInput.value;
+                    const currentLang = localStorage.getItem('appLang') || 'id';
+                    
+                    const feedbackText = currentLang === 'id' ? '✅ Berhasil Disalin!' : '✅ Copied!';
+                    const originalText = currentLang === 'id' ? 'Salin Markdown' : 'Copy Markdown';
+                    
+                    safeCopyToClipboard(textToCopy, () => {
+                        copyRawBtn.innerText = feedbackText;
+                        setTimeout(() => {
+                            copyRawBtn.innerText = originalText;
+                        }, 2000);
+                    }, (err) => {
+                        console.error("Secure copy action failed inside raw-copy module:", err);
+                    });
+                }
+            };
+        }
+    } catch (err) {
+        console.error("[WARN] Failed to bind raw copy button:", err);
+    }
+
+    // 8. Start Typewriter Animation and Apply Language Settings
+    try {
+        typeWriter();
+        applyLanguage(updateCounter);
+    } catch (err) {
+        console.error("[WARN] Failed to start Typewriter or apply Language:", err);
+    }
+
+    // 9. Restore Draft from LocalStorage if Available
+    try {
+        const savedDraft = localStorage.getItem('massivemark_draft_md');
+        if (savedDraft && dom.rawMarkdownInput) {
+            dom.rawMarkdownInput.value = savedDraft;
+            syncRawToRendered(updateCounter);
+        }
+    } catch (err) {
+        console.error("[WARN] Failed to restore local draft:", err);
     }
 });

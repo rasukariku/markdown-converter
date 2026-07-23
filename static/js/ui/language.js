@@ -12,7 +12,7 @@ const BTN_LANG_TOGGLE_ID = 'lang-toggle';
 let cachedUpdateCounter = null;
 
 // =========================================================================
-// DATA DEFINITIONS (TRANSLATIONS & UNABRIDGED UNICODE EMOJIS)
+// DATA DEFINITIONS (TRANSLATION DICTIONARIES)
 // =========================================================================
 
 const translations = Object.freeze({
@@ -66,101 +66,74 @@ const translations = Object.freeze({
     }
 });
 
-const emojiCategories = Object.freeze({
-    'id': {
-        "Smileys & Emotion": ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","😋","😎","😍","😘","🥰","🥲","☺️","🤗","🤩","🤔","🤨","😐","😑","😶","🙄","😏","😣","😥","😮","🤐","😯","😪","😫","🥱","😴","😌","😛","😜","😝","🤤","😒","😓","😔","😕","🙃","🤑","😲","☹️","🙁","😖","😞","😟","😤","😢","😭","😦","😧","😨","😩","🤯","😬","😰","😱","🥵","🥶","😳","🤪","😵","🥴","😠","😡","🤬"], 
-        "Gestures & People": ["👋","🤚","🖐","✋","🖖","👌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","👇","☝️","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","✍️","💅","🤳","💪","👀","👁","👅","👄","💋","🧠","🫀"], 
-        "Animals & Nature": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🐢","🐍","🦎","🦖","🐙","🦑","🦐","🦀","🐡","🐠","🐟","🐬","🐳","🦈","🐊","🐅","🐆","zebra","🦍","🐘","🦛","🦏","🐪","🦒","🦘","🐃","🐂","🐄","🐎","🐖","🐏","🐑","🐐","🦌","🐕","🐈","🐓","🦃","🦚","🦜","🦢","🕊","🐇","🦝","🦨","🦡","🦦","🦥","🐁","🐀","🐿","🦔","🐉","🐲","🌵","🎄","🌲","🌳","🌴","🌱","🌿","☘️","🍀","🍃","🍂","🍁","🍄","🐚","🪨","🌾","💐","🌷","🌹","🥀","🌺","🌸","🌼","🌻","🌞","🌝","🌛","🌜","🌚","🌕","🌖","🌗","🌘","🌑","🌒","🌓","🌔","🌙","🌎","🌍","🌏","🪐","💫","⭐️","🌟","✨","⚡️","☄️","💥","🔥","🌪","🌈","☀️","🌤","⛅️","🌥","☁️","🌦","🌧","⛈","🌩","🌨","❄️","☃️","⛄️","🌬","💨","💧","💦","☔️","☂️","🌊"], 
-        "Objects & Symbols": ["⌚️","📱","💻","⌨️","🖥","🖨","🖱","📷","📸","📹","🎥","📞","☎️","📺","📻","🎙","🧭","⏱","⏲","⏰","🕰","⌛️","⏳","🔋","🔌","💡","🔦","🕯","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🧰","🔧","🔨","⚒","🛠","⛏","🔩","⚙️","🧱","⛓","🧲","🔫","💣","🧨","🪓","🔪","🗡","⚔️","🛡","🚬","⚰️","🏺","🔮","📿","🧿","🔭","🔬","💊","💉","🩸","🧬","🦠","🧫","🧪","🌡","🧹","🧺","🧻","Toilet","🚰","Shower","Bathtub","Bath","Soap","Sponge","Razor","Lotion","Bell","Keys","🗝","Door","Chair","Sofa","Bed","Sleeping","Teddy","Frame","Mirror","Window","Shopping","Cart","Gift","Balloon","Ribbon","Magic","Confetti","Party","Doll","Lantern","Wind","RedEnvelope","Envelope","InboxEnvelope","SendEnvelope","Email","HeartEnvelope","Inbox","Outbox","Package","Tag","Mailbox","OpenMailbox","ClosedMailbox","Postbox","Scroll","Page","Doc","Tabs","Receipt","BarChart","UpChart","DownChart","Notebook","Calendar","DateCalendar","Schedule","Bin","Organizer","Ballot","Cabinet","Clipboard","Folder","OpenFolder","Directories","Newspaper","News","Journal","Diary","YellowBook","RedBook","GreenBook","BlueBook","OrangeBook","Books","OpenBook","Bookmark","Pin","Link","Paperclip","Paperclips","Triangle","Ruler","Abacus","Thumbtack","Pushpin","Scissors","Pen","FountainPen","CalligraphyPen","Paintbrush","Crayon","NotebookPen","Pencil","Search","Magnifier","Keylock","Lock","Unlock","Heart","OrangeHeart","YellowHeart","GreenHeart","BlueHeart","PurpleHeart","BlackHeart","WhiteHeart","BrownHeart","BrokenHeart","HeartExclamation","Hearts","SpinningHearts","BeatingHeart","GrowingHeart","SparklingHeart","Cupid","GiftHeart"] 
-    },
-    'en': { 
-        "Smileys & Emotion": ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","😋","😎","😍","😘","🥰","🥲","☺️","🤗","🤩","🤔","🤨","😐","😑","😶","🙄","😏","😣","😥","😮","🤐","😯","😪","😫","🥱","😴","😌","😛","😜","😝","🤤","😒","😓","😔","😕","🙃","🤑","😲","☹️","🙁","😖","😞","😟","😤","😢","😭","😦","😧","😨","😩","🤯","😬","😰","😱","🥵","🥶","😳","🤪","😵","🥴","😠","😡","🤬"], 
-        "Gestures & People": ["👋","🤚","🖐","✋","🖖","👌","🤏","✌️","🤞","🫰","🤟","🤘","🤙","👈","👉","👆","👇","☝️","👍","👎","✊","👊","🤛","🤜","👏","🙌","🫶","👐","🤲","🤝","🙏","✍️","💅","🤳","💪","👀","👁","👅","👄","💋","🧠","🫀"], 
-        "Animals & Nature": ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐒","🐔","🐧","🐦","🐤","🦆","🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🐢","🐍","🦎","🦖","🐙","🦑","🦐","crab","🐡","🐠","🐟","🐬","🐳","🦈","🐊","🐅","🐆","zebra","🦍","🐘","🦛","🦏","🐪","🦒","🦘","buffalo","ox","cow","🐎","🐖","ram","sheep","goat","deer","🐕","🐈","rooster","turkey","peacock","parrot","swan","dove","🐇","raccoon","skunk","badger","otter","sloth","mice","rat","squirrel","hedgehog","dragon","dragon_face","cactus","christmas_tree","evergreen_tree","deciduous_tree","palm_tree","seedling","herb","shamrock","four_leaf_clover","maple_leaf","fallen_leaf","leaf","mushroom","shell","rock","sheaf_of_rice","bouquet","tulip","rose","wilted_flower","hibiscus","cherry_blossom","blossom","sunflower","sun","full_moon_with_face","first_moon_with_face","last_moon_with_face","new_moon_with_face","full_moon","waxing_gibbous_moon","first_quarter_moon","waxing_crescent_moon","new_moon","waning_crescent_moon","last_quarter_moon","waning_gibbous_moon","crescent_moon","globe_americas","globe_africa","globe_asia","ringed_planet","dizzy","star","star2","sparkles","sparkler","zap","comet","boom","fire","tornado","rainbow","sunny","partly_sunny","partly_sunny_rain","cloud","cloud_rain","thunder_cloud_rain","cloud_lightning","snow_cloud","snowflake","snowman","snowman_without_snow","wind_face","dash","droplet","sweat_drops","umbrella","umbrella_with_rain_drops","ocean"], 
-        "Objects & Symbols": ["⌚️","📱","💻","⌨️","🖥","🖨","🖱","📷","📸","📹","🎥","📞","☎️","📺","📻","🎙","🧭","⏱","⏲","⏰","🕰","⌛️","⏳","🔋","🔌","💡","🔦","🕯","💸","💵","💴","💶","💷","🪙","💰","💳","💎","⚖️","🧰","🔧","🔨","⚒","🛠","⛏","🔩","⚙️","🧱","⛓","🧲","🔫","💣","🧨","🪓","🔪","🗡","⚔️","🛡","🚬","⚰️","🏺","🔮","📿","🧿","🔭","🔬","💊","💉","🩸","🧬","🦠","🧫","🧪","🌡","🧹","🧺","🧻","Toilet","🚰","Shower","Bathtub","Bath","Soap","Sponge","Razor","Lotion","Bell","Keys","🗝","Door","Chair","Sofa","Bed","Sleeping","Teddy","Frame","Mirror","Window","Shopping","Cart","Gift","Balloon","Ribbon","Magic","Confetti","Party","Doll","Lantern","Wind","RedEnvelope","Envelope","InboxEnvelope","SendEnvelope","Email","HeartEnvelope","Inbox","Outbox","Package","Tag","Mailbox","OpenMailbox","ClosedMailbox","Postbox","Scroll","Page","Doc","Tabs","Receipt","BarChart","UpChart","DownChart","Notebook","Calendar","DateCalendar","Schedule","Bin","Organizer","Ballot","Cabinet","Clipboard","Folder","OpenFolder","Directories","Newspaper","News","Journal","Diary","YellowBook","RedBook","GreenBook","BlueBook","OrangeBook","Books","OpenBook","Bookmark","Pin","Link","Paperclip","Paperclips","Triangle","Ruler","Abacus","Thumbtack","Pushpin","Scissors","Pen","FountainPen","CalligraphyPen","Paintbrush","Crayon","NotebookPen","Pencil","Search","Magnifier","Keylock","Lock","Unlock","Heart","OrangeHeart","YellowHeart","GreenHeart","BlueHeart","PurpleHeart","BlackHeart","WhiteHeart","BrownHeart","BrokenHeart","HeartExclamation","Hearts","SpinningHearts","BeatingHeart","GrowingHeart","SparklingHeart","Cupid","GiftHeart"] 
-    }
-});
-
 // =========================================================================
-// DOM CACHING
+// LAZY DOM GETTERS (Prevents early evaluation crashes)
 // =========================================================================
 
 const langUIElements = {
-    sub1: document.getElementById('sub-1'),
-    sub2: document.getElementById('sub-2'),
-    devBy: document.getElementById('dev-by-text'),
-    renderedOutput: document.getElementById('rendered-output'),
-    tRaw: document.getElementById('t-raw'),
-    tUni: document.getElementById('t-uni'),
-    tTable: document.getElementById('t-table'),
-    lblCol: document.getElementById('lbl-col'),
-    lblRow: document.getElementById('lbl-row'),
-    tLink: document.getElementById('t-link'),
-    lblLinkText: document.getElementById('lbl-link-text'),
-    lblLinkUrl: document.getElementById('lbl-link-url'),
-    tImage: document.getElementById('t-image'),
-    lblImageUrl: document.getElementById('lbl-image-url'),
-    tFind: document.getElementById('t-find'),
-    lblFind: document.getElementById('lbl-find'),
-    lblReplace: document.getElementById('lbl-replace'),
-    tEmoji: document.getElementById('t-emoji'),
-    btnReplaceAll: document.getElementById('btn-replace-all'),
-    btnFindNext: document.getElementById('btn-find-next'),
-    btnReplaceBtn: document.getElementById('btn-replace-btn'),
-    btnHr: document.getElementById('btn-hr'),
-    emojiGrid: document.getElementById('emoji-grid'),
-    langToggle: document.getElementById(BTN_LANG_TOGGLE_ID),
+    get sub1() { return document.getElementById('sub-1'); },
+    get sub2() { return document.getElementById('sub-2'); },
+    get devBy() { return document.getElementById('dev-by-text'); },
+    get renderedOutput() { return document.getElementById('rendered-output'); },
+    get tRaw() { return document.getElementById('t-raw'); },
+    get tUni() { return document.getElementById('t-uni'); },
+    get tTable() { return document.getElementById('t-table'); },
+    get lblCol() { return document.getElementById('lbl-col'); },
+    get lblRow() { return document.getElementById('lbl-row'); },
+    get tLink() { return document.getElementById('t-link'); },
+    get lblLinkText() { return document.getElementById('lbl-link-text'); },
+    get lblLinkUrl() { return document.getElementById('lbl-link-url'); },
+    get tImage() { return document.getElementById('t-image'); },
+    get lblImageUrl() { return document.getElementById('lbl-image-url'); },
+    get tFind() { return document.getElementById('t-find'); },
+    get lblFind() { return document.getElementById('lbl-find'); },
+    get lblReplace() { return document.getElementById('lbl-replace'); },
+    get tEmoji() { return document.getElementById('t-emoji'); },
+    get btnReplaceAll() { return document.getElementById('btn-replace-all'); },
+    get btnFindNext() { return document.getElementById('btn-find-next'); },
+    get btnReplaceBtn() { return document.getElementById('btn-replace-btn'); },
+    get btnHr() { return document.getElementById('btn-hr'); },
+    get langToggle() { return document.getElementById(BTN_LANG_TOGGLE_ID); },
     
-    btnOpenRaw: document.getElementById('btn-open-raw'),
-    menuExportStd: document.getElementById('menu-export-std'),
-    menuExportNotion: document.getElementById('menu-export-notion'),
+    get btnOpenRaw() { return document.getElementById('btn-open-raw'); },
+    get menuExportStd() { return document.getElementById('menu-export-std'); },
+    get menuExportNotion() { return document.getElementById('menu-export-notion'); },
     
-    btnCopyUniversal: document.getElementById('btn-copy-universal'),
-    btnCopyRaw: document.getElementById('btn-copy-raw'),
+    get btnCopyUniversal() { return document.getElementById('btn-copy-universal'); },
+    get btnCopyRaw() { return document.getElementById('btn-copy-raw'); },
 
-    tConfirmClear: document.getElementById('t-confirm-clear'),
-    msgConfirmClear: document.getElementById('msg-confirm-clear'),
+    get tConfirmClear() { return document.getElementById('t-confirm-clear'); },
+    get msgConfirmClear() { return document.getElementById('msg-confirm-clear'); },
 
-    tHrModal: document.getElementById('t-hr-modal')
+    get tHrModal() { return document.getElementById('t-hr-modal'); }
 };
+
+// =========================================================================
+// WEB COMPONENT EMOJI EVENT BINDING
+// =========================================================================
+
+/**
+ * Connects the custom emoji-click event from <emoji-picker> to insertion into the editor.
+ */
+export function initializeThirdPartyEmojiPicker() {
+    const picker = document.getElementById('emoji-picker-element');
+    if (picker) {
+        picker.addEventListener('emoji-click', (event) => {
+            const unicodeChar = event.detail?.unicode || event.detail?.emoji?.unicode;
+            if (unicodeChar) {
+                document.execCommand('insertText', false, unicodeChar);
+                closeWin('win-emoticon');
+            }
+        });
+    }
+}
 
 // =========================================================================
 // EXPORTED FUNCTIONS
 // =========================================================================
 
 /**
- * Renders the emoji picker grid for the targeted locale.
- * 
- * @param {string} lang - Locale identifier ('id' or 'en').
- */
-export function renderEmojis(lang) {
-    const grid = langUIElements.emojiGrid;
-    if (!grid) return;
-
-    let htmlContent = '';
-    const categories = emojiCategories[lang];
-    
-    if (categories) {
-        for (const [category, emojiList] of Object.entries(categories)) {
-            htmlContent += `<div class="emoji-category-title">${category}</div>`;
-            for (const emoji of emojiList) {
-                htmlContent += `<button class="emoji-btn">${emoji}</button>`;
-            }
-        }
-    }
-    
-    grid.innerHTML = htmlContent;
-
-    grid.querySelectorAll('.emoji-btn').forEach(btn => {
-        btn.onclick = () => {
-            document.execCommand('insertText', false, btn.innerText);
-            closeWin('win-emoticon');
-        };
-    });
-}
-
-/**
- * Apply the selected language string map across UI nodes.
+ * Applies selected language string mapping across UI elements safely.
  * 
  * @param {Function} [updateCounter] - Optional count stats refresher callback.
  */
@@ -208,8 +181,6 @@ export function applyLanguage(updateCounter) {
 
     if (langUIElements.tHrModal) langUIElements.tHrModal.innerText = t.tHrModal;
 
-    renderEmojis(currentLang);
-
     if (typeof cachedUpdateCounter === 'function') {
         cachedUpdateCounter();
     }
@@ -219,14 +190,16 @@ export function applyLanguage(updateCounter) {
 // EVENT LISTENERS
 // =========================================================================
 
-if (langUIElements.langToggle) {
-    langUIElements.langToggle.addEventListener('click', () => {
-        const currentLang = localStorage.getItem(STORAGE_KEY_LANG) || DEFAULT_LANG;
-        localStorage.setItem(STORAGE_KEY_LANG, currentLang === DEFAULT_LANG ? 'en' : DEFAULT_LANG);
-        
-        resetTypewriter();
-        applyLanguage();
-    });
-}
+document.addEventListener('DOMContentLoaded', () => {
+    if (langUIElements.langToggle) {
+        langUIElements.langToggle.addEventListener('click', () => {
+            const currentLang = localStorage.getItem(STORAGE_KEY_LANG) || DEFAULT_LANG;
+            localStorage.setItem(STORAGE_KEY_LANG, currentLang === DEFAULT_LANG ? 'en' : DEFAULT_LANG);
+            
+            resetTypewriter();
+            applyLanguage();
+        });
+    }
+});
 
 export { translations };

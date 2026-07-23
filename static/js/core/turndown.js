@@ -20,16 +20,25 @@ const ALLOWED_PARENT_TAGS = new Set(['P', 'DIV', 'LI']);
 export function initializeTurndown() {
     // Defensively prevent initialization failures if CDN loading lags behind
     if (typeof marked === 'undefined' || typeof TurndownService === 'undefined') {
-        console.error("Critical rendering dependencies (Marked or TurndownService) not found.");
+        console.error("[CRITICAL] Marked or TurndownService is undefined in global scope.");
         return { standardTurndown: null, dedicatedExportTurndown: null, notionExportTurndown: null };
     }
 
-    marked.setOptions({ breaks: true, gfm: true });
+    try {
+        marked.setOptions({ breaks: true, gfm: true });
+    } catch (e) {
+        console.warn("[WARN] Failed to configure marked options:", e);
+    }
 
     // Factory function to simplify Turndown instantiation and share common rules (DRY pattern)
     const createTurndownInstance = (keepTags) => {
         const instance = new TurndownService(BASE_TURNDOWN_OPTIONS);
-        instance.use(turndownPluginGfm.gfm);
+        
+        // FIXED: Defensive check ensures turndownPluginGfm exists before calling .use()
+        if (typeof turndownPluginGfm !== 'undefined' && turndownPluginGfm.gfm) {
+            instance.use(turndownPluginGfm.gfm);
+        }
+        
         instance.escape = (string) => string;
 
         instance.addRule('horizontalRule', {
@@ -60,19 +69,16 @@ export function initializeTurndown() {
 
     standardTurndown.addRule('underline', {
         filter: ['u', 'ins'],
-        // FIXED: Remove trailing spaces inside HTML underline tags
         replacement: (content) => '<u>' + content + '</u>'
     });
 
     standardTurndown.addRule('strikethrough', {
         filter: ['del', 's', 'strike'],
-        // FIXED: Restore the standard markdown strikethrough syntax
         replacement: (content) => '~~' + content + '~~'
     });
 
     standardTurndown.addRule('align', {
         filter: (node) => node.style && node.style.textAlign && !['LI', 'UL', 'OL'].includes(node.nodeName),
-        // FIXED: Clean up the div alignment structure to preserve document formatting
         replacement: (content, node) => '\n\n<div align="' + node.style.textAlign + '">\n\n' + content + '\n\n</div>\n\n'
     });
 
@@ -120,7 +126,6 @@ export function initializeTurndown() {
                 }
             }
 
-            // Notion requires double-dollar ($$) for inline math to trigger KaTeX rendering upon paste actions
             return (isDisplay || isStandalone) ? `\n\n$$\n${cleanTex}\n$$\n\n` : `$$${cleanTex}$$`;
         }
     });

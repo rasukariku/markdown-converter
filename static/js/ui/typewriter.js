@@ -4,14 +4,12 @@ import { dom } from '../core/state.js';
 // MODULE-LEVEL CONSTANTS
 // =========================================================================
 
-// Extract magic numbers to improve maintainability and clarify animation timing
 const TYPING_SPEED_MS = 120;
 const DELETING_SPEED_MS = 80;
 const PAUSE_AFTER_TYPING_MS = 2500;
 const PAUSE_AFTER_DELETING_MS = 800;
 const DEFAULT_LANGUAGE = 'id';
 
-// Define supported titles to prevent undefined reference errors
 const TITLES = Object.freeze({
     'id': 'MARKDOWN CONVERTER',
     'en': 'MARKDOWN CONVERTER'
@@ -21,7 +19,6 @@ const TITLES = Object.freeze({
 // STATE VARIABLES
 // =========================================================================
 
-// Module-scoped state required for the animation loop closure
 let typeIndex = 0;
 let isDeleting = false;
 let typewriterTimer = null;
@@ -31,13 +28,12 @@ let typewriterTimer = null;
 // =========================================================================
 
 /**
- * Executes the typewriter animation loop, handling typing, deleting, 
- * and pausing states based on the current application language.
+ * Executes the typewriter animation loop with null-guards.
  */
 export function typeWriter() {
+    if (!dom.typewriterTitle) return;
+
     const currentLangVal = localStorage.getItem('appLang') || DEFAULT_LANGUAGE;
-    
-    // Fallback to default language if the stored language is not supported
     const currentText = TITLES[currentLangVal] || TITLES[DEFAULT_LANGUAGE];
 
     if (!isDeleting && typeIndex <= currentText.length) {
@@ -56,7 +52,7 @@ export function typeWriter() {
 }
 
 /**
- * Resets the typewriter animation to its initial state and restarts the loop.
+ * Resets the typewriter animation loop safely.
  */
 export function resetTypewriter() {
     if (typewriterTimer) {
@@ -65,7 +61,9 @@ export function resetTypewriter() {
     
     typeIndex = 0;
     isDeleting = false;
-    dom.typewriterTitle.innerText = '';
+    if (dom.typewriterTitle) {
+        dom.typewriterTitle.innerText = '';
+    }
     
     typeWriter();
 }
