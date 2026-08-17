@@ -1,27 +1,26 @@
 import { dom, state } from './state.js';
 
 // =========================================================================
-// PRE-COMPILED REGULAR EXPRESSIONS
+// PRE-COMPILED REGULAR EXPRESSIONS & STATE QUEUES
 // =========================================================================
 const RE_SPECIAL_CHARS = /[\u00A0\u202F\u200B-\u200D\uFEFF]/g;
 const RE_CRLF = /\r\n/g;
 const RE_CR = /\r/g;
-const RE_AI_BOLD_LIST = /^[ \t]*\*\*([a-zA-Z0-9]{1,3}[\.\)])[ \t]+(.*?)\*\*/gm;
-const RE_AI_BOLD_LIST_END = /^[ \t]*\*\*([a-zA-Z0-9]{1,3}[\.\)])\*\*[ \t]+/gm;
-const RE_HR_INLINE = /([^\n])[ \t]*(\*{3,}|-{3,}|_{3,})[ \t]*$/gm;
-const RE_HR_START = /^[ \t]*(\*{3,}|-{3,}|_{3,})[ \t]*([^\n])/gm;
-const RE_HR_STANDALONE = /^[ \t]*(\*{3,}|-{3,}|_{3,})[ \t]*$/gm;
-const RE_INLINE_MATH = /\\\([\s\S]*?\\\)/g;
-const RE_DISPLAY_MATH = /\\\[[\s\S]*?\\\]/g;
-const RE_BOLD_MATH = /\*\*(\$\$?)([^\$\n]+)\1\*\*/g;
-const RE_MATH_CONTENT = /(\$\$?)([^\$]+)\1/g;
-const RE_MATH_BOLD = /\*\*[ \t]*([^\*\n]+)[ \t]*\*\*/g;
-const RE_MATH_FRAC = /([-]?\d+)[ \t]*\/[ \t]*([-]?\d+)/g;
-const RE_MATH_SPACES = /[ \t]{2,}/g;
-const RE_EXCESS_NEWLINES = /\n{3,}/g;
+const RE_BULLET_BOLD = /^([ \t]*[\*\-\+\u2022]\s*)\*\*([^\*\n]+)\*\*([ \t]*:?)/gm;
+const RE_NUMERIC_BOLD = /^([ \t]*[0-9]{1,3}[\.\)][ \t]+)\*\*([^\*\n]+)\*\*([ \t]*:?)/gm;
 const RE_MATRIX_MATH = /(?:\\mathbf|\\boldsymbol)\{\s*\\begin\{([a-zA-Z]*matrix)\}([\s\S]*?)\\end\{\1\}\s*\}/g;
 
-// Decoders for MathJax attributes
+const RE_RIGHT_ARROWS_COMBINED = /(?:\\+rightarrow\b|-->|->|==>|=>|→|⇒|&rarr;|&#8594;)(?:[\s\u00A0\u2000-\u200B\u202F\uFEFF]|&nbsp;|<[^>]+>)*(?:\\+rightarrow\b|-->|->|==>|=>|→|⇒|&rarr;|&#8594;)+/gi;
+const RE_LEFT_ARROWS_COMBINED = /(?:\\+leftarrow\b|<--|<-|<==|<=|←|⇐|&larr;|&#8592;)(?:[\s\u00A0\u2000-\u200B\u202F\uFEFF]|&nbsp;|<[^>]+>)*(?:\\+leftarrow\b|<--|<-|<==|<=|←|⇐|&larr;|&#8592;)+/gi;
+
+const RE_SINGLE_RIGHT_ARROW = /\\+rightarrow\b|-->|->|&rarr;|&#8594;/gi;
+const RE_SINGLE_RIGHT_DOUBLE_ARROW = /\\+Rightarrow\b|==>|=>/gi;
+const RE_SINGLE_LEFT_ARROW = /\\+leftarrow\b|<--|<-|&larr;|&#8592;/gi;
+const RE_SINGLE_LEFT_DOUBLE_ARROW = /\\+Leftarrow\b|<==|<=/gi;
+
+const RE_CURRENCY_AMOUNT = /^\s*\$?\s*\d+(?:\.\d{1,2})?\s*$/;
+const RE_UNWRAPPED_LATEX_ENV = /(?<!\$\$[\s\S]*?)(?:\\begin\{(cases|array|gather|align|alignat|equation|multline)\}([\s\S]*?)\\end\{\1\})(?![\s\S]*?\$\$)/g;
+
 const RE_HTML_ENTITIES = /&amp;|&lt;|&gt;|&quot;|&#39;/g;
 const HTML_ENTITY_MAP = {
     '&amp;': '&',
@@ -33,27 +32,102 @@ const HTML_ENTITY_MAP = {
 
 const STORAGE_KEY = 'massivemark_draft_md';
 
-// =========================================================================
-// HELPER FUNCTIONS
-// =========================================================================
+let mathjaxPromiseQueue = Promise.resolve();
+let syncDebounceTimer = null;
+const DEBOUNCE_DELAY_MS = 150;
 
-/**
- * Decodes raw HTML entity encodings back into standard LaTeX string characters.
- * 
- * @param {string} text - The encoded HTML string.
- * @returns {string} Clean, decoded string.
- */
 function decodeHtmlEntities(text) {
     return text.replace(RE_HTML_ENTITIES, (match) => HTML_ENTITY_MAP[match]);
 }
 
-/**
- * Creates an interactive math wrapper container matching the Obsidian visual layout style.
- * 
- * @param {string} mathContent - Raw LaTeX equation string.
- * @param {boolean} isDisplay - Indicates whether the equation is a display block (true) or inline (false).
- * @returns {string} Generated HTML string for the interactive math component.
- */
+export function collapseAllArrows(htmlOrText) {
+    if (!htmlOrText) return '';
+
+    return htmlOrText
+        .replace(RE_RIGHT_ARROWS_COMBINED, '→')
+        .replace(RE_LEFT_ARROWS_COMBINED, '←')
+        .replace(RE_SINGLE_RIGHT_ARROW, '→')
+        .replace(RE_SINGLE_RIGHT_DOUBLE_ARROW, '⇒')
+        .replace(RE_SINGLE_LEFT_ARROW, '←')
+        .replace(RE_SINGLE_LEFT_DOUBLE_ARROW, '⇐');
+}
+
+export function sanitizeLatexSymbolsInText(text) {
+    if (!text) return '';
+
+    const codeBlocks = [];
+    let protectedText = text.replace(/```[\s\S]*?```|`[^`\n]+`/g, (match) => {
+        const placeholder = `@@@CODE_BLOCK_${codeBlocks.length}@@@`;
+        codeBlocks.push({ placeholder, match });
+        return placeholder;
+    });
+
+    const mathBlocks = [];
+    protectedText = protectedText.replace(/\$\$[\s\S]*?\$\$|\$[^\$\n]+\$/g, (match) => {
+        const placeholder = `@@@MATH_PRESERVE_${mathBlocks.length}@@@`;
+        mathBlocks.push({ placeholder, match });
+        return placeholder;
+    });
+
+    protectedText = protectedText
+        .replace(/\\+(?:text|mathrm|mbox|mathit|mathsf|mathtt)\s*\{([^}]+)\}/gi, '$1')
+        .replace(/\\+mathbf\s*\{([^}]+)\}/gi, '$1')
+        .replace(/\\+frac\s*\{([^}]+)\}\s*\{([^}]+)\}/gi, '$1/$2')
+        .replace(/\\+sqrt\s*\{([^}]+)\}/gi, '√$1');
+
+    protectedText = collapseAllArrows(protectedText);
+
+    protectedText = protectedText
+        .replace(/\\+leftrightarrow\b/gi, '↔')
+        .replace(/\\+Leftrightarrow\b/gi, '⇔')
+        .replace(/\\+(?:le|leq)\b/gi, '≤')
+        .replace(/\\+(?:ge|geq)\b/gi, '≥')
+        .replace(/\\+(?:ne|neq)\b/gi, '≠')
+        .replace(/\\+times\b/gi, '×')
+        .replace(/\\+div\b/gi, '÷')
+        .replace(/\\+approx\b/gi, '≈')
+        .replace(/\\+pm\b/gi, '±')
+        .replace(/\\+mp\b/gi, '∓')
+        .replace(/\\+cdot\b/gi, '·')
+        .replace(/\\+degree\b|\\+\^\s*\\circ\b/gi, '°')
+        .replace(/\\+alpha\b/gi, 'α')
+        .replace(/\\+beta\b/gi, 'β')
+        .replace(/\\+gamma\b/gi, 'γ')
+        .replace(/\\+delta\b/gi, 'δ')
+        .replace(/\\+theta\b/gi, 'θ')
+        .replace(/\\+lambda\b/gi, 'λ')
+        .replace(/\\+mu\b/gi, 'μ')
+        .replace(/\\+pi\b/gi, 'π')
+        .replace(/\\+sigma\b/gi, 'σ')
+        .replace(/\\+omega\b/gi, 'ω')
+        .replace(/\\+Delta\b/gi, 'Δ')
+        .replace(/\\+Omega\b/gi, 'Ω')
+        .replace(/\\+in\b/gi, '∈')
+        .replace(/\\+notin\b/gi, '∉')
+        .replace(/\\+subset\b/gi, '⊂')
+        .replace(/\\+subseteq\b/gi, '⊆')
+        .replace(/\\+cap\b/gi, '∩')
+        .replace(/\\+cup\b/gi, '∪')
+        .replace(/\\+forall\b/gi, '∀')
+        .replace(/\\+exists\b/gi, '∃')
+        .replace(/\\+infty\b/gi, '∞')
+        .replace(/\\+%/g, '%')
+        .replace(/\\+\$([^\$])/g, '$$1')
+        .replace(/\\+&/g, '&')
+        .replace(/\\+_/g, '_')
+        .replace(/\\+#/g, '#');
+
+    mathBlocks.forEach(({ placeholder, match }) => {
+        protectedText = protectedText.replace(placeholder, match);
+    });
+
+    codeBlocks.forEach(({ placeholder, match }) => {
+        protectedText = protectedText.replace(placeholder, match);
+    });
+
+    return protectedText;
+}
+
 function createInteractiveMathWrapper(mathContent, isDisplay) {
     const cleanContent = mathContent.trim();
     const wrapperClass = isDisplay ? 'math-wrapper display-math-wrapper' : 'math-wrapper inline-math-wrapper';
@@ -80,20 +154,9 @@ function createInteractiveMathWrapper(mathContent, isDisplay) {
     }
 }
 
-// =========================================================================
-// EXPORTED CORE SYNCHRONIZATION FUNCTIONS
-// =========================================================================
-
-/**
- * Protects math equations and horizontal dividers from the Markdown parser during HTML compilation.
- * 
- * @param {string} text - Input raw Markdown text.
- * @returns {string} Compiled HTML string with interactive math and rule wrappers.
- */
 export function parseMarkdownWithMath(text) {
     if (!text) return '';
     
-    // Safety check to prevent UI lock if script dependencies fail to download from CDNs
     if (typeof marked === 'undefined') {
         console.error("Markdown parser (Marked) is unavailable.");
         return text;
@@ -101,7 +164,6 @@ export function parseMarkdownWithMath(text) {
 
     const mathBlocks = [];
 
-    // 1. Protect Display Math ($$...$$) multi-line blocks
     let processedText = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
         const placeholder = `@@@MATH_DISPLAY_${mathBlocks.length}@@@`;
         const wrapper = createInteractiveMathWrapper(math, true);
@@ -109,25 +171,23 @@ export function parseMarkdownWithMath(text) {
         return placeholder;
     });
 
-    // 2. Protect Inline Math ($...$) blocks
-    processedText = processedText.replace(/\$([^\$\s\n](?:[^\$\n]*?[^\$\s\n])?)\$/g, (match, math) => {
+    processedText = processedText.replace(/\$([^\$\n]+?)\$/g, (match, math) => {
+        if (RE_CURRENCY_AMOUNT.test(math)) {
+            return match;
+        }
         const placeholder = `@@@MATH_INLINE_${mathBlocks.length}@@@`;
         const wrapper = createInteractiveMathWrapper(math, false);
         mathBlocks.push({ placeholder, wrapper });
         return placeholder;
     });
 
-    // 3. Intercept standalone horizontal rules (---, ===, ***, ___) BEFORE Marked parsing
-    // to preserve exact character attributes and enable double and dotted CSS styling.
     processedText = processedText.replace(/^(?:[ \t]*)(-{3,}|={3,}|\*{3,}|_{3,})(?:[ \t]*)$/gm, (match, chars) => {
         const cleanChars = chars.trim();
         return `<p class="hr-raw-line" contenteditable="true" data-chars="${cleanChars}">${cleanChars}</p>`;
     });
 
-    // 4. Invoke Marked Parser on isolated structural contents
     let parsedHTML = marked.parse(processedText);
 
-    // 5. Restore math elements inside parsed HTML structure
     mathBlocks.forEach(({ placeholder, wrapper }) => {
         const pWrappedPlaceholder = `<p>${placeholder}</p>`;
         if (parsedHTML.includes(pWrappedPlaceholder)) {
@@ -137,159 +197,155 @@ export function parseMarkdownWithMath(text) {
         }
     });
 
-    // 6. Catch any standard <hr> tags that bypassed pre-processing
     parsedHTML = parsedHTML.replace(/<hr\s*\/?>/gi, `<p class="hr-raw-line" contenteditable="true" data-chars="---">---</p>`);
 
-    return parsedHTML;
+    return collapseAllArrows(parsedHTML);
 }
 
-/**
- * Sanitizes raw AI outputs, converting non-standard delimiters, zero-width spaces, 
- * and single internal line breaks to prevent word concatenation when copied.
- * 
- * @param {string} plainData - Unsanitized raw AI string.
- * @returns {string} Sanitized string ready for Markdown rendering.
- */
 export function sanitizeAIText(plainData) {
     if (!plainData) return '';
 
-    // Convert non-breaking spaces and zero-width characters to standard spaces
-    plainData = plainData.replace(RE_SPECIAL_CHARS, ' ');
     plainData = plainData.replace(RE_CRLF, '\n').replace(RE_CR, '\n');
+    plainData = plainData.replace(RE_SPECIAL_CHARS, ' ');
 
-    // Convert single internal paragraph line breaks into spaces to prevent word concatenation on copy
-    plainData = plainData.replace(/(?<!\n)\n(?!\n)/g, ' ');
+    plainData = plainData.replace(RE_UNWRAPPED_LATEX_ENV, '\n\n$$\n$& \n$$\n\n');
 
-    // Normalize multiple space characters into a single space
-    plainData = plainData.replace(/[ \t]{2,}/g, ' ');
+    plainData = plainData.replace(RE_BULLET_BOLD, '$1**$2**$3');
+    plainData = plainData.replace(RE_NUMERIC_BOLD, '$1**$2**$3');
 
-    plainData = plainData.replace(RE_AI_BOLD_LIST, '$1 **$2**');
-    plainData = plainData.replace(RE_AI_BOLD_LIST_END, '$1 ');
-    plainData = plainData.replace(RE_HR_INLINE, '$1\n\n$2\n\n');
-    plainData = plainData.replace(RE_HR_START, '\n\n$1\n\n$2');
-    plainData = plainData.replace(RE_HR_STANDALONE, '\n\n---\n\n');
+    plainData = plainData.replace(/\\\(([\s\S]*?)\\\)/g, (m, math) => `$${math.trim()}$`);
+    plainData = plainData.replace(/\\\[([\s\S]*?)\\\]/g, (m, math) => `$$\n${math.trim()}\n$$`);
 
-    let processedText = plainData.replace(RE_INLINE_MATH, (m) => '$' + m.slice(2, -2).trim() + '$');
-    processedText = processedText.replace(RE_DISPLAY_MATH, (m) => '$$' + m.slice(2, -2).trim() + '$$');
-    processedText = processedText.replace(RE_BOLD_MATH, '$1\\mathbf{$2}$1');
+    plainData = sanitizeLatexSymbolsInText(plainData);
 
-    processedText = processedText.replace(RE_MATH_CONTENT, (match, dollar, mathContent) => {
-        let cleanMath = mathContent;
-        cleanMath = cleanMath.replace(RE_MATH_BOLD, '\\mathbf{$1}');
-        cleanMath = cleanMath.replace(RE_MATH_FRAC, '\\frac{$1}{$2}');
-        cleanMath = cleanMath.replace(RE_MATH_SPACES, ' ');
-        return dollar + cleanMath + dollar;
-    });
-
-    return processedText.replace(RE_EXCESS_NEWLINES, '\n\n');
+    return plainData.replace(/\n{3,}/g, '\n\n');
 }
 
-/**
- * Synchronizes raw Markdown textarea changes into the visual WYSIWYG editor.
- * 
- * @param {Function} updateCounter - Callback to refresh metrics.
- */
 export function syncRawToRendered(updateCounter) {
     if (state.isSyncing) return;
-    state.isSyncing = true;
 
-    const rawText = dom.rawMarkdownInput ? dom.rawMarkdownInput.value : '';
-    if (!rawText.trim()) {
-        if (dom.renderedOutput) dom.renderedOutput.innerHTML = '';
-        state.isSyncing = false;
-        updateCounter();
-        return;
-    }
+    clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = setTimeout(() => {
+        state.isSyncing = true;
 
-    const processedText = rawText.replace(RE_MATRIX_MATH, (match, matrixType, content) => {
-        const formattedContent = content
-            .split('\\\\')
-            .map(row => row
-                .split('&')
-                .map(cell => cell.trim() === '' ? cell : `\\mathbf{${cell.trim()}}`)
-                .join(' & ')
-            )
-            .join(' \\\\\n');
-
-        return `\\begin{${matrixType}}\n${formattedContent}\n\\end{${matrixType}}`;
-    });
-
-    const parsedHTML = parseMarkdownWithMath(processedText);
-    if (dom.renderedOutput) dom.renderedOutput.innerHTML = parsedHTML;
-
-    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
-        window.MathJax.typesetPromise([dom.renderedOutput])
-            .then(() => {
-                if (dom.renderedOutput) {
-                    dom.renderedOutput.querySelectorAll('mjx-container').forEach(node => {
-                        node.setAttribute('contenteditable', 'false');
-                    });
-                }
+        try {
+            const rawText = dom.rawMarkdownInput ? dom.rawMarkdownInput.value : '';
+            if (!rawText.trim()) {
+                if (dom.renderedOutput) dom.renderedOutput.innerHTML = '';
                 updateCounter();
-                localStorage.setItem(STORAGE_KEY, rawText);
-                state.isSyncing = false;
-            })
-            .catch(err => {
-                console.error('MathJax typeset error:', err);
-                state.isSyncing = false;
+                return;
+            }
+
+            const processedText = rawText.replace(RE_MATRIX_MATH, (match, matrixType, content) => {
+                const formattedContent = content
+                    .split('\\\\')
+                    .map(row => row
+                        .split('&')
+                        .map(cell => cell.trim() === '' ? cell : `\\mathbf{${cell.trim()}}`)
+                        .join(' & ')
+                    )
+                    .join(' \\\\\n');
+
+                return `\\begin{${matrixType}}\n${formattedContent}\n\\end{${matrixType}}`;
             });
-    } else {
-        updateCounter();
-        localStorage.setItem(STORAGE_KEY, rawText);
-        state.isSyncing = false;
-    }
+
+            const sanitizedText = sanitizeLatexSymbolsInText(processedText);
+            const parsedHTML = parseMarkdownWithMath(sanitizedText);
+            if (dom.renderedOutput) dom.renderedOutput.innerHTML = parsedHTML;
+
+            if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+                mathjaxPromiseQueue = mathjaxPromiseQueue
+                    .then(() => window.MathJax.typesetPromise([dom.renderedOutput]))
+                    .then(() => {
+                        if (dom.renderedOutput) {
+                            dom.renderedOutput.querySelectorAll('mjx-container').forEach(node => {
+                                node.setAttribute('contenteditable', 'false');
+                            });
+                        }
+                        updateCounter();
+                        try {
+                            localStorage.setItem(STORAGE_KEY, rawText);
+                        } catch (quotaErr) {
+                            console.warn("[WARN] LocalStorage quota exceeded. Draft storage skipped.", quotaErr);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('MathJax queued typeset error:', err);
+                    });
+            } else {
+                updateCounter();
+                try {
+                    localStorage.setItem(STORAGE_KEY, rawText);
+                } catch (quotaErr) {
+                    console.warn("[WARN] LocalStorage quota exceeded. Draft storage skipped.", quotaErr);
+                }
+            }
+        } catch (err) {
+            console.error("[CRITICAL] Error inside syncRawToRendered:", err);
+        } finally {
+            state.isSyncing = false;
+        }
+    }, DEBOUNCE_DELAY_MS);
 }
 
-/**
- * Synchronizes visual WYSIWYG editor changes back into raw Markdown format.
- * 
- * @param {object} standardTurndown - Active Turndown parser instance.
- * @param {Function} updateCounter - Callback to refresh metrics.
- */
 export function syncRenderedToRaw(standardTurndown, updateCounter) {
     if (state.isSyncing || !dom.renderedOutput) return;
-    state.isSyncing = true;
 
-    const clone = dom.renderedOutput.cloneNode(true);
+    clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = setTimeout(() => {
+        state.isSyncing = true;
 
-    clone.querySelectorAll('.math-wrapper').forEach(wrapper => {
-        const rawEl = wrapper.querySelector('.math-raw-line');
-        const rawText = rawEl ? rawEl.textContent.trim() : '';
-        const isDisplay = wrapper.getAttribute('data-math-display') === 'true';
-        const formattedLaTeX = isDisplay ? `\n\n$$ ${rawText} $$\n\n` : `$${rawText}$`;
-        
-        if (wrapper.parentNode) {
-            wrapper.parentNode.replaceChild(document.createTextNode(formattedLaTeX), wrapper);
+        try {
+            const clone = dom.renderedOutput.cloneNode(true);
+
+            clone.querySelectorAll('.math-wrapper').forEach(wrapper => {
+                const rawEl = wrapper.querySelector('.math-raw-line');
+                const rawText = rawEl ? rawEl.textContent.trim() : '';
+                const isDisplay = wrapper.getAttribute('data-math-display') === 'true';
+                const formattedLaTeX = isDisplay ? `\n\n$$ ${rawText} $$\n\n` : `$${rawText}$`;
+                
+                if (wrapper.parentNode) {
+                    wrapper.parentNode.replaceChild(document.createTextNode(formattedLaTeX), wrapper);
+                }
+            });
+
+            clone.querySelectorAll('.hr-raw-line').forEach(rawLine => {
+                const rawText = rawLine.getAttribute('data-chars') || rawLine.innerText.trim() || '---';
+                if (rawLine.parentNode) {
+                    rawLine.parentNode.replaceChild(document.createTextNode('\n\n' + rawText + '\n\n'), rawLine);
+                }
+            });
+
+            clone.querySelectorAll('mjx-container').forEach(node => {
+                const rawTex = node.getAttribute('data-raw-tex');
+                const isDisplay = node.getAttribute('data-math-display') === 'true';
+
+                if (rawTex && node.parentNode) {
+                    const cleanTex = decodeHtmlEntities(rawTex);
+                    const mathText = isDisplay ? `\n\n$$${cleanTex}$$\n\n` : `$${cleanTex}$`;
+                    node.parentNode.replaceChild(document.createTextNode(mathText), node);
+                }
+            });
+
+            if (standardTurndown) {
+                let md = standardTurndown.turndown(clone.innerHTML);
+                md = md.replace(/\n{3,}/g, '\n\n');
+                md = md.replace(/(?:\n\n---\n\n){2,}/g, '\n\n---\n\n');
+                md = collapseAllArrows(md);
+
+                if (dom.rawMarkdownInput) dom.rawMarkdownInput.value = md;
+                updateCounter();
+                
+                try {
+                    localStorage.setItem(STORAGE_KEY, md);
+                } catch (quotaErr) {
+                    console.warn("[WARN] LocalStorage quota exceeded. Draft storage skipped.", quotaErr);
+                }
+            }
+        } catch (err) {
+            console.error("[CRITICAL] Error inside syncRenderedToRaw:", err);
+        } finally {
+            state.isSyncing = false;
         }
-    });
-
-    // Reads data-chars attribute to preserve exact rule character styles (===, ***) during serialization
-    clone.querySelectorAll('.hr-raw-line').forEach(rawLine => {
-        const rawText = rawLine.getAttribute('data-chars') || rawLine.innerText.trim() || '---';
-        if (rawLine.parentNode) {
-            rawLine.parentNode.replaceChild(document.createTextNode('\n\n' + rawText + '\n\n'), rawLine);
-        }
-    });
-
-    clone.querySelectorAll('mjx-container').forEach(node => {
-        const rawTex = node.getAttribute('data-raw-tex');
-        const isDisplay = node.getAttribute('data-math-display') === 'true';
-
-        if (rawTex && node.parentNode) {
-            const cleanTex = decodeHtmlEntities(rawTex);
-            const mathText = isDisplay ? `\n\n$$${cleanTex}$$\n\n` : `$${cleanTex}$`;
-            node.parentNode.replaceChild(document.createTextNode(mathText), node);
-        }
-    });
-
-    let md = standardTurndown.turndown(clone.innerHTML);
-    md = md.replace(RE_EXCESS_NEWLINES, '\n\n');
-    
-    // RESTORED: Deduplicates consecutive horizontal rule blocks during serialization
-    md = md.replace(/(?:\n\n---\n\n){2,}/g, '\n\n---\n\n');
-
-    if (dom.rawMarkdownInput) dom.rawMarkdownInput.value = md;
-    updateCounter();
-    localStorage.setItem(STORAGE_KEY, md);
-    state.isSyncing = false;
+    }, DEBOUNCE_DELAY_MS);
 }

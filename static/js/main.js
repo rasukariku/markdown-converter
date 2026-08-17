@@ -14,83 +14,103 @@ import { typeWriter, resetTypewriter } from './ui/typewriter.js';
 import { openWin, closeWin } from './ui/modals.js';
 import { applyLanguage, translations, initializeThirdPartyEmojiPicker } from './ui/language.js';
 import { initializeFormatCycle, checkToolbarActive } from './ui/toolbar.js';
-
 import { initializeLivePreview } from './editor/live-preview.js';
 import './ui/theme.js';
 
 // =====================================================================
-// IMMEDIATE TOP-LEVEL GLOBAL BRIDGES (Prevents inline onclick exceptions)
+// IMMEDIATE TOP-LEVEL GLOBAL WINDOW BRIDGES
+// (Registered at top-level script load to prevent inline onclick ReferenceErrors)
 // =====================================================================
+let globalStandardTurndown = null;
+let globalUpdateCounter = () => {};
+
+const safeBoundFormatDoc = (cmd, value) => formatDoc(
+    cmd, 
+    value, 
+    () => globalStandardTurndown && syncRenderedToRaw(globalStandardTurndown, globalUpdateCounter), 
+    checkToolbarActive
+);
+
+const safeBoundSyncRenderedToRaw = () => globalStandardTurndown && syncRenderedToRaw(globalStandardTurndown, globalUpdateCounter);
+
 window.openWin = openWin;
 window.closeWin = closeWin;
 window.toggleFullscreen = toggleFullscreen;
 window.toggleToolbar = toggleToolbar;
 window.resetTypewriter = resetTypewriter;
+window.formatDoc = safeBoundFormatDoc;
+window.insertHorizontalRule = () => insertHorizontalRule(safeBoundFormatDoc);
+window.setDirection = (dir) => setDirection(dir, safeBoundFormatDoc, safeBoundSyncRenderedToRaw);
+window.triggerSync = safeBoundSyncRenderedToRaw;
 
 // =====================================================================
 // FAULT-TOLERANT INITIALIZATION LOOP
 // =====================================================================
 document.addEventListener('DOMContentLoaded', () => {
     
-    // 1. Initialize Turndown Conversion Engines
     let standardTurndown = null;
     let dedicatedExportTurndown = null;
     let notionExportTurndown = null;
+    let whatsappExportTurndown = null;
+    let telegramExportTurndown = null;
+    let discordExportTurndown = null;
+    let socialExportTurndown = null;
 
     try {
         const engines = initializeTurndown();
         standardTurndown = engines.standardTurndown;
         dedicatedExportTurndown = engines.dedicatedExportTurndown;
         notionExportTurndown = engines.notionExportTurndown;
+        whatsappExportTurndown = engines.whatsappExportTurndown;
+        telegramExportTurndown = engines.telegramExportTurndown;
+        discordExportTurndown = engines.discordExportTurndown;
+        socialExportTurndown = engines.socialExportTurndown;
+
+        globalStandardTurndown = standardTurndown;
     } catch (err) {
         console.error("[CRITICAL] Failed to initialize Turndown engines:", err);
     }
 
-    // 2. Initialize Metrics Counter
-    let updateCounter = () => {};
     try {
-        updateCounter = initializeStats(translations);
+        globalUpdateCounter = initializeStats(translations);
     } catch (err) {
         console.error("[WARN] Failed to initialize stats module:", err);
     }
 
-    // 3. Bound Synchronization Functions
-    const boundFormatDoc = (cmd, value) => formatDoc(
-        cmd, 
-        value, 
-        () => standardTurndown && syncRenderedToRaw(standardTurndown, updateCounter), 
-        checkToolbarActive
-    );
-    const boundSyncRenderedToRaw = () => standardTurndown && syncRenderedToRaw(standardTurndown, updateCounter);
-
-    // 4. Update Window Scope Bridges with Bound Logic
-    window.formatDoc = boundFormatDoc;
-    window.insertHorizontalRule = () => insertHorizontalRule(boundFormatDoc);
-    window.setDirection = (dir) => setDirection(dir, boundFormatDoc, boundSyncRenderedToRaw);
-    window.triggerSync = boundSyncRenderedToRaw;
-
-    // 5. Register Real-Time Input Sync Listeners
+    // Register Real-Time Input Sync Listeners
     try {
         if (dom.rawMarkdownInput) {
-            dom.rawMarkdownInput.addEventListener('input', () => syncRawToRendered(updateCounter));
+            dom.rawMarkdownInput.addEventListener('input', () => syncRawToRendered(globalUpdateCounter));
         }
         if (dom.renderedOutput) {
-            dom.renderedOutput.addEventListener('input', boundSyncRenderedToRaw);
+            dom.renderedOutput.addEventListener('input', safeBoundSyncRenderedToRaw);
         }
     } catch (err) {
         console.error("[WARN] Failed to attach input sync listeners:", err);
     }
 
-    // 6. Isolated Feature Module Initializations (Guarantees runtime fault isolation)
+    // Isolated Feature Module Initializations
     const modules = [
-        { name: 'Dialogs', fn: () => initializeDialogs(boundFormatDoc) },
-        { name: 'FindReplace', fn: () => initializeFindReplace(boundFormatDoc, boundSyncRenderedToRaw) },
-        { name: 'PasteInterceptors', fn: () => standardTurndown && initializePasteInterceptors(standardTurndown, updateCounter) },
+        { name: 'Dialogs', fn: () => initializeDialogs(safeBoundFormatDoc) },
+        { name: 'FindReplace', fn: () => initializeFindReplace(safeBoundFormatDoc, safeBoundSyncRenderedToRaw) },
+        { name: 'PasteInterceptors', fn: () => standardTurndown && initializePasteInterceptors(standardTurndown, globalUpdateCounter) },
         { name: 'Clipboard', fn: () => initializeClipboard() },
-        { name: 'Tables', fn: () => initializeTables(boundSyncRenderedToRaw) },
-        { name: 'Export', fn: () => dedicatedExportTurndown && notionExportTurndown && initializeExport(dedicatedExportTurndown, notionExportTurndown, boundSyncRenderedToRaw, updateCounter) },
+        { name: 'Tables', fn: () => initializeTables(safeBoundSyncRenderedToRaw) },
+        { 
+            name: 'Export', 
+            fn: () => initializeExport(
+                dedicatedExportTurndown, 
+                notionExportTurndown, 
+                whatsappExportTurndown, 
+                telegramExportTurndown, 
+                discordExportTurndown, 
+                socialExportTurndown, 
+                safeBoundSyncRenderedToRaw, 
+                globalUpdateCounter
+            ) 
+        },
         { name: 'Drag', fn: () => initializeDrag() },
-        { name: 'Autosave', fn: () => initializeAutosave(boundSyncRenderedToRaw, updateCounter) },
+        { name: 'Autosave', fn: () => initializeAutosave(safeBoundSyncRenderedToRaw, globalUpdateCounter) },
         { name: 'FormatCycle', fn: () => initializeFormatCycle() },
         { name: 'LivePreview', fn: () => initializeLivePreview() },
         { name: 'EmojiPicker', fn: () => initializeThirdPartyEmojiPicker() }
@@ -104,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 7. Register Raw Copy Modal Handler
+    // Register Raw Copy Modal Handler
     try {
         const copyRawBtn = document.getElementById('btn-copy-raw');
         if (copyRawBtn) {
@@ -131,20 +151,18 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("[WARN] Failed to bind raw copy button:", err);
     }
 
-    // 8. Start Typewriter Animation and Apply Language Settings
     try {
         typeWriter();
-        applyLanguage(updateCounter);
+        applyLanguage(globalUpdateCounter);
     } catch (err) {
         console.error("[WARN] Failed to start Typewriter or apply Language:", err);
     }
 
-    // 9. Restore Draft from LocalStorage if Available
     try {
         const savedDraft = localStorage.getItem('massivemark_draft_md');
         if (savedDraft && dom.rawMarkdownInput) {
             dom.rawMarkdownInput.value = savedDraft;
-            syncRawToRendered(updateCounter);
+            syncRawToRendered(globalUpdateCounter);
         }
     } catch (err) {
         console.error("[WARN] Failed to restore local draft:", err);

@@ -1,17 +1,10 @@
 import { dom } from '../core/state.js';
 
-// =========================================================================
-// MODULE-LEVEL CONSTANTS
-// =========================================================================
-
-// Extract magic numbers to improve maintainability and clarify UI timing
 const CYCLE_INTERVAL_MS = 2500;
 const OPACITY_TRANSITION_DELAY_MS = 300;
 
-// Extract format cycle array to prevent inline clutter
 const FORMATS_CYCLE = ["WORD", "PDF", "HTML"];
 
-// Define command mappings once to prevent array recreation on every event trigger
 const TOOLBAR_COMMANDS = [
     { id: 'btn-bold', cmd: 'bold' },
     { id: 'btn-italic', cmd: 'italic' },
@@ -27,53 +20,56 @@ const TOOLBAR_COMMANDS = [
     { id: 'btn-sub', cmd: 'subscript' }
 ];
 
-// Cache DOM button references at module initialization to eliminate redundant DOM queries
-// during high-frequency user interactions (keyup, mouseup, click).
-const CACHED_TOOLBAR_BUTTONS = TOOLBAR_COMMANDS
-    .map(item => ({ element: document.getElementById(item.id), cmd: item.cmd }))
-    .filter(item => item.element !== null);
-
-// =========================================================================
-// EXPORTED FUNCTIONS
-// =========================================================================
-
-/**
- * Initializes the continuous format cycle animation for the UI.
- */
 export function initializeFormatCycle() {
     let fIdx = 0;
+    if (!dom.cycleText) return;
     
     setInterval(() => {
         fIdx = (fIdx + 1) % FORMATS_CYCLE.length;
-        dom.cycleText.style.opacity = 0;
+        if (dom.cycleText) dom.cycleText.style.opacity = 0;
         
         setTimeout(() => {
-            dom.cycleText.innerText = FORMATS_CYCLE[fIdx];
-            dom.cycleText.style.opacity = 1;
+            if (dom.cycleText) {
+                dom.cycleText.innerText = FORMATS_CYCLE[fIdx];
+                dom.cycleText.style.opacity = 1;
+            }
         }, OPACITY_TRANSITION_DELAY_MS);
     }, CYCLE_INTERVAL_MS);
 }
 
-/**
- * Evaluates the current document selection and updates the active state 
- * of the toolbar buttons accordingly.
- */
 export function checkToolbarActive() {
-    CACHED_TOOLBAR_BUTTONS.forEach(({ element, cmd }) => {
-        const isActive = document.queryCommandState(cmd);
-        if (isActive) {
-            element.classList.add('active');
-        } else {
-            element.classList.remove('active');
+    TOOLBAR_COMMANDS.forEach(({ id, cmd }) => {
+        const element = document.getElementById(id);
+        if (element) {
+            try {
+                const isActive = document.queryCommandState(cmd);
+                if (isActive) {
+                    element.classList.add('active');
+                } else {
+                    element.classList.remove('active');
+                }
+            } catch (e) {
+                // Ignore queryCommandState exceptions on unsupported commands
+            }
         }
     });
 }
 
-// =========================================================================
-// EVENT LISTENERS
-// =========================================================================
+// Attach explicit click event listeners to toolbar buttons
+document.addEventListener('DOMContentLoaded', () => {
+    TOOLBAR_COMMANDS.forEach(({ id, cmd }) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (typeof window.formatDoc === 'function') {
+                    window.formatDoc(cmd);
+                }
+            });
+        }
+    });
+});
 
-// Attach listeners only if the rendered output exists to prevent fatal null reference crashes
 if (dom.renderedOutput) {
     ['keyup', 'mouseup', 'click'].forEach(evt => 
         dom.renderedOutput.addEventListener(evt, checkToolbarActive)

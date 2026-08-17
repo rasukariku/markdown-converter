@@ -6,10 +6,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 
-# Pre-compile regex for pseudo-list detection to eliminate runtime overhead
 _RE_PSEUDO_LIST = re.compile(r'^([a-zA-Z0-9]{1,4}[\.\)]|\([a-zA-Z0-9]{1,4}\)|[\-\*\+•●○■□▪▫►>])\s+')
-
-# Extract magic string for Horizontal Rule placeholder
 _HR_PLACEHOLDER = '[[HR_PLACEHOLDER]]'
 
 
@@ -24,7 +21,6 @@ def format_docx_document(doc: Document) -> Document:
     Returns:
         The formatted Document object.
     """
-    # Fix numbering
     if doc.part.numbering_part is not None:
         for lvl in doc.part.numbering_part.element.xpath('.//w:lvl'):
             suff = lvl.find(qn('w:suff'))
@@ -33,13 +29,11 @@ def format_docx_document(doc: Document) -> Document:
                 lvl.append(suff)
             suff.set(qn('w:val'), 'space')
     
-    # Configure Normal style
     normal_style = doc.styles['Normal']
     normal_style.font.name = 'Times New Roman'
     normal_style.font.size = Pt(12)
     normal_style.font.color.rgb = RGBColor(0, 0, 0)
     
-    # Configure Hyperlink style
     try:
         hlink_style = doc.styles['Hyperlink']
         hlink_style.font.name = 'Times New Roman'
@@ -56,12 +50,10 @@ def format_docx_document(doc: Document) -> Document:
     except KeyError:
         pass
     
-    # Page setup
     for section in doc.sections:
         section.page_width, section.page_height = Cm(21.0), Cm(29.7)
         section.top_margin, section.bottom_margin, section.left_margin, section.right_margin = Cm(2.54), Cm(2.54), Cm(2.54), Cm(2.54)
     
-    # Math properties
     settings = doc.settings.element
     math_pr = settings.find(qn('m:mathPr'))
     if math_pr is None:
@@ -74,7 +66,6 @@ def format_docx_document(doc: Document) -> Document:
         math_pr.append(def_jc)
     def_jc.set(qn('m:val'), 'left')
     
-    # Compatibility settings
     compat = settings.find(qn('w:compat'))
     if compat is None:
         compat = OxmlElement('w:compat')
@@ -86,23 +77,13 @@ def format_docx_document(doc: Document) -> Document:
     compat_setting.set(qn('w:val'), '15')
     compat.append(compat_setting)
     
-    # Process paragraphs
     _process_paragraphs(doc)
-    
-    # Process tables
     _process_tables(doc)
     
     return doc
 
 
 def _process_paragraphs(doc: Document) -> None:
-    """
-    Process all paragraphs in the document to apply formatting, 
-    alignment, and cleanup.
-    
-    Args:
-        doc: The python-docx Document object.
-    """
     paragraphs = list(doc.paragraphs)
     removal_queue = []
     
@@ -114,14 +95,9 @@ def _process_paragraphs(doc: Document) -> None:
         is_heading = style_name.startswith('Heading')
         is_list = ('List' in style_name or 'Bullet' in style_name or 'Compact' in style_name or bool(para._element.findall('.//' + qn('w:numPr'))))
         is_code = 'Source Code' in style_name or 'Code' in style_name
-        
-        # Use pre-compiled regex for pseudo-list detection
         is_pseudo_list = bool(_RE_PSEUDO_LIST.match(text_clean))
-        
         is_quote = 'Quote' in style_name or 'Block Text' in style_name
-        has_soft_return = '\n' in para.text
         
-        # Horizontal Rule Processing
         is_hr = _HR_PLACEHOLDER in text_clean
         if is_hr:
             p_el = para._element
@@ -189,7 +165,6 @@ def _process_paragraphs(doc: Document) -> None:
                     para.paragraph_format.left_indent = Pt(0)
                     para.paragraph_format.first_line_indent = Pt(0)
                     
-        # Format runs
         for run in para.runs:
             if run._element.findall('.//' + qn('m:oMath')):
                 continue
@@ -224,7 +199,6 @@ def _process_paragraphs(doc: Document) -> None:
                 rPr.append(lang_el)
             lang_el.set(qn('w:val'), 'id-ID')
             
-        # Alignment logic
         if is_heading:
             if para.alignment is None:
                 para.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -240,7 +214,6 @@ def _process_paragraphs(doc: Document) -> None:
                 if para.alignment is None:
                     para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
                     
-    # Remove empty paragraphs
     for para in reversed(removal_queue):
         p = para._element
         if p.getparent() is not None:
@@ -248,13 +221,6 @@ def _process_paragraphs(doc: Document) -> None:
 
 
 def _process_tables(doc: Document) -> None:
-    """
-    Process all tables in the document to apply grid styling, 
-    cell formatting, and post-table spacing.
-    
-    Args:
-        doc: The python-docx Document object.
-    """
     for table in doc.tables:
         try:
             table.style = 'Table Grid'

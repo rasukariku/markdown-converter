@@ -2,6 +2,7 @@ import os
 import tempfile
 import platform
 import csv
+import shutil
 import pypandoc
 from flask import Flask, request, send_file, render_template, jsonify
 from docx import Document
@@ -10,9 +11,10 @@ from utils.file_manager import get_buffer_and_cleanup
 from services.docx_formatter import format_docx_document
 from services.pdf_generator import generate_pdf_from_docx
 
-# 1. Define Pandoc executable path specifically for Hugging Face Linux/Docker environments
+# 1. Dynamically locate Pandoc executable path on Linux environments
 if platform.system() == 'Linux':
-    os.environ.setdefault('PYPANDOC_PANDOC', '/usr/bin/pandoc')
+    pandoc_path = shutil.which('pandoc') or '/usr/bin/pandoc'
+    os.environ.setdefault('PYPANDOC_PANDOC', pandoc_path)
 
 # 2. Dynamically detect and download Pandoc across platforms safely
 try:
@@ -36,6 +38,9 @@ app = Flask(__name__)
 
 ALLOWED_FORMATS = {'docx', 'pdf', 'html'}
 ALLOWED_UPLOAD_EXTENSIONS = {'.txt', '.md', '.docx', '.csv', '.xlsx'}
+MAX_SPREADSHEET_ROWS = 500  # Cap maximum table rows to prevent browser DOM freezing
+
+PANDOC_INPUT_FORMAT = 'markdown+raw_html+pipe_tables+tex_math_dollars+fenced_code_blocks+backtick_code_blocks+autolink_bare_uris+strikeout'
 
 @app.route('/')
 def index():
@@ -43,10 +48,6 @@ def index():
 
 @app.route('/upload_parse', methods=['POST'])
 def upload_parse():
-    """
-    Parses uploaded document files (.txt, .md, .docx, .csv, .xlsx) 
-    and converts them into standard Markdown text supporting LaTeX and tables.
-    """
     if 'file' not in request.files:
         return jsonify({'status': 'error', 'message': 'No file payload attached.'}), 400
         
@@ -60,18 +61,15 @@ def upload_parse():
         return jsonify({'status': 'error', 'message': f'Unsupported file extension: {ext}'}), 400
 
     try:
-        # Process Plain Text & Markdown files directly
         if ext in ['.txt', '.md']:
             raw_content = uploaded_file.read().decode('utf-8', errors='replace')
             return jsonify({'status': 'success', 'markdown': raw_content})
 
-        # Process Microsoft Word (.docx) documents via Pandoc AST conversion with --wrap=none
         elif ext == '.docx':
             temp_docx = tempfile.NamedTemporaryFile(delete=False, suffix='.docx')
             uploaded_file.save(temp_docx.name)
             temp_docx.close()
 
-            # FIXED: Added --wrap=none to prevent Pandoc from inserting mid-sentence line breaks
             markdown_output = pypandoc.convert_file(
                 temp_docx.name, 
                 'markdown', 
@@ -86,11 +84,10 @@ def upload_parse():
 
             return jsonify({'status': 'success', 'markdown': markdown_output})
 
-        # Process CSV Spreadsheets into Markdown Tables
         elif ext == '.csv':
             raw_text = uploaded_file.read().decode('utf-8', errors='replace')
             reader = csv.reader(raw_text.splitlines())
-            rows = list(reader)
+            rows = list(reader)[:MAX_SPREADSHEET_ROWS]
             if not rows:
                 return jsonify({'status': 'success', 'markdown': ''})
 
@@ -102,14 +99,15 @@ def upload_parse():
 
             return jsonify({'status': 'success', 'markdown': "\n".join(md_table)})
 
-        # Process Microsoft Excel (.xlsx) Spreadsheets into Markdown Tables
         elif ext == '.xlsx':
             try:
                 import openpyxl
-                workbook = openpyxl.load_workbook(uploaded_file)
+                workbook = openpyxl.load_workbook(uploaded_file, read_only=True)
                 sheet = workbook.active
                 rows = []
-                for row in sheet.iter_rows(values_only=True):
+                for i, row in enumerate(sheet.iter_rows(values_only=True)):
+                    if i >= MAX_SPREADSHEET_ROWS:
+                        break
                     if any(row):
                         rows.append([str(val if val is not None else '') for val in row])
                 
@@ -141,7 +139,6 @@ def convert():
         return f"Unsupported format. Allowed: {', '.join(sorted(ALLOWED_FORMATS))}.", 400
 
     source_text, source_text_html = preprocess_markdown(markdown_content)
-    input_format = 'markdown+raw_html'
 
     if file_format == 'html':
         temp_html = tempfile.NamedTemporaryFile(delete=False, suffix='.html')
@@ -152,7 +149,7 @@ def convert():
                 '--mathjax=https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'
             ]
             pypandoc.convert_text(
-                source_text_html, 'html', format=input_format, 
+                source_text_html, 'html', format=PANDOC_INPUT_FORMAT, 
                 outputfile=temp_html.name, extra_args=extra_args
             )
             buffer = get_buffer_and_cleanup(temp_html.name)
@@ -173,7 +170,7 @@ def convert():
     
     try:
         pypandoc.convert_text(
-            source_text, 'docx', format=input_format, 
+            source_text, 'docx', format=PANDOC_INPUT_FORMAT, 
             outputfile=temp_docx.name, extra_args=['--highlight-style=tango']
         )
         doc = Document(temp_docx.name)
@@ -181,7 +178,7 @@ def convert():
         doc.save(temp_docx.name)
         
         if file_format == 'pdf':
-            pdf_path, error = generate_pdf_from_docx(temp_docx.name, source_text_html, input_format)
+            pdf_path, error = generate_pdf_from_docx(temp_docx.name, source_text_html, PANDOC_INPUT_FORMAT)
             if os.path.exists(temp_docx.name):
                 try:
                     os.unlink(temp_docx.name)

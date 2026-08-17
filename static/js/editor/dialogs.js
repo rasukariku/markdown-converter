@@ -82,7 +82,7 @@ export function initializeDialogs(formatDoc) {
         };
     }
 
-    // Dialog Modal: Insert Table
+    // Dialog Modal: Insert Table (GFM Compliant with <thead> & <th>)
     const btnConfirmTable = document.getElementById('btn-confirm-table');
     if (btnConfirmTable) {
         btnConfirmTable.onclick = () => {
@@ -92,22 +92,21 @@ export function initializeDialogs(formatDoc) {
             cols = Math.max(1, Math.min(20, cols));
             rows = Math.max(1, Math.min(50, rows));
 
-            const tableHTML = [
-                '<br><table border="1" style="border-collapse: collapse; width: 100%; border-color: #555; table-layout: fixed;"><tbody>',
-                ...Array.from({ length: rows }, () => 
-                    '<tr>' + 
-                    Array.from({ length: cols }, () => '<td style="padding: 10px;"><br></td>').join('') + 
-                    '</tr>'
-                ).join(''),
-                '</tbody></table><br>'
-            ].join('');
+            const headerRow = '<thead><tr>' + Array.from({ length: cols }, (_, i) => `<th style="padding: 10px; border: 1px solid #555; background-color: rgba(128,128,128,0.12);">Header ${i + 1}</th>`).join('') + '</tr></thead>';
+            
+            const bodyRowsCount = Math.max(1, rows - 1);
+            const bodyRows = '<tbody>' + Array.from({ length: bodyRowsCount }, () => 
+                '<tr>' + Array.from({ length: cols }, () => '<td style="padding: 10px; border: 1px solid #555;"><br></td>').join('') + '</tr>'
+            ).join('') + '</tbody>';
+
+            const tableHTML = `<br><table border="1" style="border-collapse: collapse; width: 100%; border-color: #555; table-layout: fixed;">${headerRow}${bodyRows}</table><br>`;
 
             closeWin('win-table');
             formatDoc('insertHTML', tableHTML);
         };
     }
 
-    // FIXED: Register Horizontal Rule Style Selection Handlers inside #win-hr
+    // Register Horizontal Rule Style Selection Handlers inside #win-hr
     document.querySelectorAll('.hr-select-btn').forEach(btn => {
         btn.onclick = (e) => {
             e.preventDefault();

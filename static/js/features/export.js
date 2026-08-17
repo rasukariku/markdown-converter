@@ -1,12 +1,7 @@
 import { dom } from '../core/state.js';
 import { openWin, closeWin } from '../ui/modals.js';
-import { parseMarkdownWithMath, sanitizeAIText } from '../core/sync.js';
+import { parseMarkdownWithMath, sanitizeAIText, collapseAllArrows } from '../core/sync.js';
 
-// =========================================================================
-// MODULE-LEVEL CONSTANTS & HELPERS
-// =========================================================================
-
-// Dictionary to decode MathJax HTML entities back to raw LaTeX syntax
 const RE_HTML_ENTITIES = /&amp;|&lt;|&gt;|&quot;|&#39;/g;
 const HTML_ENTITY_MAP = {
     '&amp;': '&',
@@ -16,23 +11,100 @@ const HTML_ENTITY_MAP = {
     '&#39;': "'"
 };
 
-/**
- * Decodes raw MathJax HTML entities back to their original character representations.
- * 
- * @param {string} text - The encrypted HTML text.
- * @returns {string} The clean, decoded text.
- */
+const UNICODE_BOLD_MAP = Object.freeze({
+    'A': '𝗔', 'B': '𝗕', 'C': '𝗖', 'D': '𝗗', 'E': '𝗘', 'F': '𝗙', 'G': '𝗚', 'H': '𝗛', 'I': '𝗜', 'J': '𝗝',
+    'K': '𝗞', 'L': '𝗟', 'M': '𝗠', 'N': '𝗡', 'O': '𝗢', 'P': '𝗣', 'Q': '𝗤', 'R': '𝗥', 'S': '𝗦', 'T': '𝗧',
+    'U': '𝗨', 'V': '𝗩', 'W': '𝗪', 'X': '𝗫', 'Y': '𝗬', 'Z': '𝗭',
+    'a': '𝗮', 'b': '𝗯', 'c': '𝗰', 'd': '𝗱', 'e': '𝗲', 'f': '𝗳', 'g': '𝗴', 'h': '𝗵', 'i': '𝗶', 'j': '𝗷',
+    'k': '𝗸', 'l': '𝗹', 'm': '𝗺', 'n': '𝗻', 'o': '𝗼', 'p': '𝗽', 'q': '1', 'r': '𝗿', 's': '𝘀', 't': '𝘁',
+    'u': '𝘂', 'v': '𝘃', 'w': '𝘄', 'x': '𝘅', 'y': '𝘆', 'z': '𝘇',
+    '0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'
+});
+
+function toUnicodeSansBold(text) {
+    if (!text) return text;
+    return text.split('').map(c => UNICODE_BOLD_MAP[c] || c).join('');
+}
+
 function decodeHtmlEntities(text) {
     return text.replace(RE_HTML_ENTITIES, (match) => HTML_ENTITY_MAP[match]);
 }
 
 /**
- * Copies plain text to the clipboard with fallback for non-secure HTTP LAN environments.
+ * Functional substitution post-processor for WhatsApp exports.
+ * Strips all # headers, converts **bold** to *bold*, converts links, and normalizes dividers.
  * 
- * @param {string} text - The raw text to write to the clipboard.
- * @param {Function} successCallback - Fired upon successful clipboard write.
- * @param {Function} failureCallback - Fired when the operation fails.
+ * @param {string} text - Raw exported text.
+ * @returns {string} WhatsApp-compatible text.
  */
+function sanitizeForWhatsApp(text) {
+    if (!text) return '';
+
+    return text
+        // Convert Markdown ATX headings (# Heading) to WhatsApp Bold (*HEADING*)
+        .replace(/^(?:[ \t]*)(?:#{1,6})[ \t]*(.+)$/gm, (m, title) => `*${title.trim()}*`)
+        // Convert double-asterisk bold (**text**) to WhatsApp single-asterisk bold (*text*)
+        .replace(/\*\*([^\*\n]+)\*\*/g, '*$1*')
+        // Convert double-tilde strikethrough (~~text~~) to WhatsApp single-tilde (~text~)
+        .replace(/~~([^~\n]+)~~/g, '~$1~')
+        // Convert double-underscore (__text__) to single underscore (_text_)
+        .replace(/__([^_\n]+)__/g, '_$1_')
+        // Convert Markdown links [Text](URL) to Text (URL)
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
+        // Replace horizontal rules (---) with Unicode divider lines
+        .replace(/^(?:[ \t]*)(?:-{3,}|\*{3,}|_{3,})(?:[ \t]*)$/gm, '───────────────────')
+        // Collapse triple/quadruple asterisks resulting from nested replacements (* * -> *)
+        .replace(/\*{2,}/g, '*');
+}
+
+/**
+ * Functional substitution post-processor for Telegram exports.
+ * 
+ * @param {string} text - Raw exported text.
+ * @returns {string} Telegram-compatible text.
+ */
+function sanitizeForTelegram(text) {
+    if (!text) return '';
+
+    return text
+        .replace(/^(?:[ \t]*)(?:#{1,6})[ \t]*(.+)$/gm, (m, title) => `*${title.trim()}*`)
+        .replace(/\*\*([^\*\n]+)\*\*/g, '*$1*')
+        .replace(/~~([^~\n]+)~~/g, '~$1~')
+        .replace(/^(?:[ \t]*)(?:-{3,}|\*{3,}|_{3,})(?:[ \t]*)$/gm, '───────────────────')
+        .replace(/\*{2,}/g, '*');
+}
+
+/**
+ * Functional substitution post-processor for Discord exports.
+ * 
+ * @param {string} text - Raw exported text.
+ * @returns {string} Discord-compatible text.
+ */
+function sanitizeForDiscord(text) {
+    if (!text) return '';
+
+    return text
+        .replace(/^(?:[ \t]*)(?:-{3,}|\*{3,}|_{3,})(?:[ \t]*)$/gm, '───────────────────');
+}
+
+/**
+ * Functional substitution post-processor for Instagram & LinkedIn social post exports.
+ * Converts headings and bold text to Unicode Sans-Serif Bold characters.
+ * 
+ * @param {string} text - Raw exported text.
+ * @returns {string} Social post-compatible text.
+ */
+function sanitizeForSocial(text) {
+    if (!text) return '';
+
+    return text
+        .replace(/^(?:[ \t]*)(?:#{1,6})[ \t]*(.+)$/gm, (m, title) => `\n📌 ${toUnicodeSansBold(title.trim().toUpperCase())}\n`)
+        .replace(/\*\*([^\*\n]+)\*\*/g, (m, boldText) => toUnicodeSansBold(boldText))
+        .replace(/\*([^\*\n]+)\*/g, (m, boldText) => toUnicodeSansBold(boldText))
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1: $2')
+        .replace(/^(?:[ \t]*)(?:-{3,}|\*{3,}|_{3,})(?:[ \t]*)$/gm, '───────────────────');
+}
+
 export function safeCopyToClipboard(text, successCallback, failureCallback) {
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text)
@@ -49,7 +121,6 @@ export function safeCopyToClipboard(text, successCallback, failureCallback) {
 function fallbackCopyToClipboard(text, successCallback, failureCallback) {
     const tempTextarea = document.createElement('textarea');
     tempTextarea.value = text;
-    
     tempTextarea.style.position = 'fixed';
     tempTextarea.style.top = '0';
     tempTextarea.style.left = '0';
@@ -80,24 +151,26 @@ function fallbackCopyToClipboard(text, successCallback, failureCallback) {
     }
 }
 
-// =========================================================================
-// EXPORTED FUNCTIONS
-// =========================================================================
-
-/**
- * Initializes the universal export system, formatting modals, and dynamic dropdown options on the toolbar.
- * 
- * @param {object} dedicatedExportTurndown - Turndown instance configured for standard markdown export.
- * @param {object} notionExportTurndown - Turndown instance configured for Notion-compatible export.
- * @param {Function} boundSyncRenderedToRaw - Callback to sync the visual editor contents back to raw markdown.
- * @param {Function} updateCounter - Callback to recalculate document metrics and statistics.
- */
-export function initializeExport(dedicatedExportTurndown, notionExportTurndown, boundSyncRenderedToRaw, updateCounter) {
+export function initializeExport(
+    dedicatedExportTurndown, 
+    notionExportTurndown, 
+    whatsappExportTurndown, 
+    telegramExportTurndown, 
+    discordExportTurndown, 
+    socialExportTurndown, 
+    boundSyncRenderedToRaw, 
+    updateCounter
+) {
     
     const btnOpenRaw = document.getElementById('btn-open-raw');
     const dropdownMenu = document.getElementById('markdown-dropdown-menu');
     const menuExportStd = document.getElementById('menu-export-std');
     const menuExportNotion = document.getElementById('menu-export-notion');
+    const menuExportWhatsApp = document.getElementById('menu-export-whatsapp');
+    const menuExportTelegram = document.getElementById('menu-export-telegram');
+    const menuExportDiscord = document.getElementById('menu-export-discord');
+    const menuExportSocial = document.getElementById('menu-export-social');
+
     const btnCopyUniversal = document.getElementById('btn-copy-universal');
     const btnApplyUniversal = document.getElementById('btn-apply-universal');
     const tUni = document.getElementById('t-uni');
@@ -107,9 +180,6 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
     const btnUploadDoc = document.getElementById('btn-upload-doc');
     const fileUploadInput = document.getElementById('file-upload-input');
 
-    /**
-     * Synchronizes raw Markdown content from the Universal Modal directly into the visual WYSIWYG editor.
-     */
     function applyUniversalToEditor() {
         if (!dom.universalMarkdownInput || !dom.renderedOutput) return;
         const rawText = dom.universalMarkdownInput.value;
@@ -120,9 +190,11 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
         
         if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
             window.MathJax.typesetPromise([dom.renderedOutput]).then(() => {
-                dom.renderedOutput.querySelectorAll('mjx-container').forEach(node => {
-                    node.setAttribute('contenteditable', 'false');
-                });
+                if (dom.renderedOutput) {
+                    dom.renderedOutput.querySelectorAll('mjx-container').forEach(node => {
+                        node.setAttribute('contenteditable', 'false');
+                    });
+                }
                 updateCounter();
                 boundSyncRenderedToRaw();
             });
@@ -150,7 +222,7 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
     if (btnExecuteClear) {
         btnExecuteClear.onclick = (e) => {
             e.preventDefault();
-            dom.renderedOutput.innerHTML = '';
+            if (dom.renderedOutput) dom.renderedOutput.innerHTML = '';
             if (dom.rawMarkdownInput) dom.rawMarkdownInput.value = '';
             if (dom.universalMarkdownInput) dom.universalMarkdownInput.value = '';
             localStorage.removeItem('massivemark_draft_md');
@@ -190,10 +262,10 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
                     
                     openWin('win-uni');
                     if (tUni) tUni.innerText = `Uploaded File: ${file.name}`;
-                    dom.universalMarkdownInput.value = sanitizedMarkdown;
+                    if (dom.universalMarkdownInput) dom.universalMarkdownInput.value = sanitizedMarkdown;
                     
                     applyUniversalToEditor();
-                    dom.universalMarkdownInput.focus();
+                    if (dom.universalMarkdownInput) dom.universalMarkdownInput.focus();
                 } else {
                     alert(`Upload Error: ${result.message}`);
                 }
@@ -221,13 +293,16 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
     });
 
     /**
-     * Renders universal export output in standard or Notion format.
+     * Renders universal export output in standard, Notion, WhatsApp, Telegram, Discord, or Social format.
+     * Applies target-specific post-processing sanitizers to enforce platform compatibility.
      * 
-     * @param {string} mode - 'standard' or 'notion'
+     * @param {string} mode - 'standard' | 'notion' | 'whatsapp' | 'telegram' | 'discord' | 'social'
      */
     function renderUniversalExport(mode) {
+        if (!dom.renderedOutput || !dom.universalMarkdownInput) return;
+
         const clone = dom.renderedOutput.cloneNode(true);
-        
+
         clone.querySelectorAll('.math-wrapper').forEach(wrapper => {
             const rawEl = wrapper.querySelector('.math-raw-line');
             const rawText = rawEl ? rawEl.textContent.trim() : '';
@@ -236,6 +311,8 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
             let formattedLaTeX = '';
             if (mode === 'notion') {
                 formattedLaTeX = isDisplay ? `\n\n$$\n${rawText}\n$$\n\n` : `$$${rawText}$$`;
+            } else if (mode === 'whatsapp' || mode === 'telegram' || mode === 'discord' || mode === 'social') {
+                formattedLaTeX = ` ${rawText} `;
             } else {
                 formattedLaTeX = isDisplay ? `\n\n$$\n${rawText}\n$$\n\n` : `$${rawText}$`;
             }
@@ -253,19 +330,33 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
         });
 
         let md = '';
-        if (mode === 'notion') {
+        if (mode === 'notion' && notionExportTurndown) {
             md = notionExportTurndown.turndown(clone.innerHTML);
-            if (tUni) tUni.innerText = "Export Notion-Compatible Markdown";
-        } else {
+            md = collapseAllArrows(md);
+            if (tUni) tUni.innerText = "Export Notion & Obsidian";
+        } else if (mode === 'whatsapp' && whatsappExportTurndown) {
+            md = whatsappExportTurndown.turndown(clone.innerHTML);
+            md = sanitizeForWhatsApp(md);
+            if (tUni) tUni.innerText = "Export WhatsApp Mode";
+        } else if (mode === 'telegram' && telegramExportTurndown) {
+            md = telegramExportTurndown.turndown(clone.innerHTML);
+            md = sanitizeForTelegram(md);
+            if (tUni) tUni.innerText = "Export Telegram Mode";
+        } else if (mode === 'discord' && discordExportTurndown) {
+            md = discordExportTurndown.turndown(clone.innerHTML);
+            md = sanitizeForDiscord(md);
+            if (tUni) tUni.innerText = "Export Discord Mode";
+        } else if (mode === 'social' && socialExportTurndown) {
+            md = socialExportTurndown.turndown(clone.innerHTML);
+            md = sanitizeForSocial(md);
+            if (tUni) tUni.innerText = "Export Instagram & LinkedIn (Post / Bio)";
+        } else if (dedicatedExportTurndown) {
             md = dedicatedExportTurndown.turndown(clone.innerHTML);
+            md = collapseAllArrows(md);
             if (tUni) tUni.innerText = "Export Standard Markdown (LaTeX)";
         }
         
         md = md.replace(/\n{3,}/g, '\n\n');
-        
-        // RESTORED: Deduplicates consecutive horizontal rule blocks during export
-        md = md.replace(/(?:\n\n---\n\n){2,}/g, '\n\n---\n\n');
-        
         dom.universalMarkdownInput.value = md;
     }
 
@@ -285,6 +376,46 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
             if (dropdownMenu) dropdownMenu.classList.remove('active');
             openWin('win-uni');
             renderUniversalExport('notion');
+            if (dom.universalMarkdownInput) dom.universalMarkdownInput.focus();
+        };
+    }
+
+    if (menuExportWhatsApp) {
+        menuExportWhatsApp.onclick = (e) => {
+            e.preventDefault();
+            if (dropdownMenu) dropdownMenu.classList.remove('active');
+            openWin('win-uni');
+            renderUniversalExport('whatsapp');
+            if (dom.universalMarkdownInput) dom.universalMarkdownInput.focus();
+        };
+    }
+
+    if (menuExportTelegram) {
+        menuExportTelegram.onclick = (e) => {
+            e.preventDefault();
+            if (dropdownMenu) dropdownMenu.classList.remove('active');
+            openWin('win-uni');
+            renderUniversalExport('telegram');
+            if (dom.universalMarkdownInput) dom.universalMarkdownInput.focus();
+        };
+    }
+
+    if (menuExportDiscord) {
+        menuExportDiscord.onclick = (e) => {
+            e.preventDefault();
+            if (dropdownMenu) dropdownMenu.classList.remove('active');
+            openWin('win-uni');
+            renderUniversalExport('discord');
+            if (dom.universalMarkdownInput) dom.universalMarkdownInput.focus();
+        };
+    }
+
+    if (menuExportSocial) {
+        menuExportSocial.onclick = (e) => {
+            e.preventDefault();
+            if (dropdownMenu) dropdownMenu.classList.remove('active');
+            openWin('win-uni');
+            renderUniversalExport('social');
             if (dom.universalMarkdownInput) dom.universalMarkdownInput.focus();
         };
     }
@@ -320,7 +451,6 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
         dom.convertForm.addEventListener('submit', function(e) {
             const clone = dom.renderedOutput.cloneNode(true);
             
-            // 1. Sanitize interactive math containers before standard Docx/PDF backend conversions
             clone.querySelectorAll('.math-wrapper').forEach(wrapper => {
                 const rawEl = wrapper.querySelector('.math-raw-line');
                 const rawText = rawEl ? rawEl.textContent.trim() : '';
@@ -332,7 +462,6 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
                 }
             });
 
-            // 2. Sanitize interactive Horizontal Rules
             clone.querySelectorAll('.hr-raw-line').forEach(rawLine => {
                 const rawText = rawLine.getAttribute('data-chars') || rawLine.innerText.trim() || '---';
                 if (rawLine.parentNode) {
@@ -340,7 +469,6 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
                 }
             });
 
-            // 3. RESTORED: Standalone MathJax container fallback extraction loop for form submit payload
             clone.querySelectorAll('mjx-container').forEach(node => {
                 const rawTex = node.getAttribute('data-raw-tex');
                 const isDisplay = node.getAttribute('data-math-display') === 'true';
@@ -352,8 +480,12 @@ export function initializeExport(dedicatedExportTurndown, notionExportTurndown, 
                 }
             });
             
-            dom.hiddenFormInput.value = dedicatedExportTurndown.turndown(clone.innerHTML);
-            dom.fabMenu.classList.remove('active');
+            if (dedicatedExportTurndown) {
+                dom.hiddenFormInput.value = dedicatedExportTurndown.turndown(clone.innerHTML);
+            }
+            if (dom.fabMenu) {
+                dom.fabMenu.classList.remove('active');
+            }
         });
     }
 }

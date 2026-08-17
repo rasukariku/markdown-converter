@@ -1,19 +1,11 @@
 import { resetTypewriter } from './typewriter.js';
 import { closeWin } from './modals.js';
 
-// =========================================================================
-// MODULE-LEVEL CONSTANTS & STATE CACHE
-// =========================================================================
-
 const STORAGE_KEY_LANG = 'appLang';
 const DEFAULT_LANG = 'id';
 const BTN_LANG_TOGGLE_ID = 'lang-toggle';
 
 let cachedUpdateCounter = null;
-
-// =========================================================================
-// DATA DEFINITIONS (TRANSLATION DICTIONARIES)
-// =========================================================================
 
 const translations = Object.freeze({
     'id': {
@@ -29,8 +21,12 @@ const translations = Object.freeze({
         'selection': '(Teks Diblok)', 'quote': 'Kutipan', 'hr': 'Garis Pemisah',
         
         'btnOpenRaw': 'Ekspor Markdown',
-        'menuExportStd': '📤 Ekspor Standard (LaTeX)',
-        'menuExportNotion': '📤 Ekspor Mode Notion',
+        'menuExportStd': '📤 Standard Markdown (LaTeX)',
+        'menuExportNotion': '📤 Notion & Obsidian',
+        'menuExportWhatsApp': '💬 WhatsApp Mode',
+        'menuExportTelegram': '✈️ Telegram Mode',
+        'menuExportDiscord': '🎮 Discord Mode',
+        'menuExportSocial': '📱 Instagram & LinkedIn (Post / Bio)',
         
         'btnCopyUniversal': 'Salin Ekspor',
         'btnCopyRaw': 'Salin Markdown',
@@ -53,8 +49,12 @@ const translations = Object.freeze({
         'selection': '(Text Selected)', 'quote': 'Quote', 'hr': 'Horizontal Line',
         
         'btnOpenRaw': 'Export Markdown',
-        'menuExportStd': '📤 Export Standard (LaTeX)',
-        'menuExportNotion': '📤 Export Notion Mode',
+        'menuExportStd': '📤 Standard Markdown (LaTeX)',
+        'menuExportNotion': '📤 Notion & Obsidian',
+        'menuExportWhatsApp': '💬 WhatsApp Mode',
+        'menuExportTelegram': '✈️ Telegram Mode',
+        'menuExportDiscord': '🎮 Discord Mode',
+        'menuExportSocial': '📱 Instagram & LinkedIn (Post / Bio)',
         
         'btnCopyUniversal': 'Copy Export',
         'btnCopyRaw': 'Copy Markdown',
@@ -65,10 +65,6 @@ const translations = Object.freeze({
         'tHrModal': 'Select Horizontal Divider'
     }
 });
-
-// =========================================================================
-// LAZY DOM GETTERS (Prevents early evaluation crashes)
-// =========================================================================
 
 const langUIElements = {
     get sub1() { return document.getElementById('sub-1'); },
@@ -93,11 +89,15 @@ const langUIElements = {
     get btnFindNext() { return document.getElementById('btn-find-next'); },
     get btnReplaceBtn() { return document.getElementById('btn-replace-btn'); },
     get btnHr() { return document.getElementById('btn-hr'); },
-    get langToggle() { return document.getElementById(BTN_LANG_TOGGLE_ID); },
+    get langToggle() { return document.getElementById('lang-toggle'); },
     
     get btnOpenRaw() { return document.getElementById('btn-open-raw'); },
     get menuExportStd() { return document.getElementById('menu-export-std'); },
     get menuExportNotion() { return document.getElementById('menu-export-notion'); },
+    get menuExportWhatsApp() { return document.getElementById('menu-export-whatsapp'); },
+    get menuExportTelegram() { return document.getElementById('menu-export-telegram'); },
+    get menuExportDiscord() { return document.getElementById('menu-export-discord'); },
+    get menuExportSocial() { return document.getElementById('menu-export-social'); },
     
     get btnCopyUniversal() { return document.getElementById('btn-copy-universal'); },
     get btnCopyRaw() { return document.getElementById('btn-copy-raw'); },
@@ -108,13 +108,6 @@ const langUIElements = {
     get tHrModal() { return document.getElementById('t-hr-modal'); }
 };
 
-// =========================================================================
-// WEB COMPONENT EMOJI EVENT BINDING
-// =========================================================================
-
-/**
- * Connects the custom emoji-click event from <emoji-picker> to insertion into the editor.
- */
 export function initializeThirdPartyEmojiPicker() {
     const picker = document.getElementById('emoji-picker-element');
     if (picker) {
@@ -128,15 +121,6 @@ export function initializeThirdPartyEmojiPicker() {
     }
 }
 
-// =========================================================================
-// EXPORTED FUNCTIONS
-// =========================================================================
-
-/**
- * Applies selected language string mapping across UI elements safely.
- * 
- * @param {Function} [updateCounter] - Optional count stats refresher callback.
- */
 export function applyLanguage(updateCounter) {
     if (typeof updateCounter === 'function') {
         cachedUpdateCounter = updateCounter;
@@ -172,6 +156,10 @@ export function applyLanguage(updateCounter) {
     if (langUIElements.btnOpenRaw) langUIElements.btnOpenRaw.title = t.btnOpenRaw;
     if (langUIElements.menuExportStd) langUIElements.menuExportStd.innerText = t.menuExportStd;
     if (langUIElements.menuExportNotion) langUIElements.menuExportNotion.innerText = t.menuExportNotion;
+    if (langUIElements.menuExportWhatsApp) langUIElements.menuExportWhatsApp.innerText = t.menuExportWhatsApp;
+    if (langUIElements.menuExportTelegram) langUIElements.menuExportTelegram.innerText = t.menuExportTelegram;
+    if (langUIElements.menuExportDiscord) langUIElements.menuExportDiscord.innerText = t.menuExportDiscord;
+    if (langUIElements.menuExportSocial) langUIElements.menuExportSocial.innerText = t.menuExportSocial;
 
     if (langUIElements.btnCopyUniversal) langUIElements.btnCopyUniversal.innerText = t.btnCopyUniversal;
     if (langUIElements.btnCopyRaw) langUIElements.btnCopyRaw.innerText = t.btnCopyRaw;
@@ -185,10 +173,6 @@ export function applyLanguage(updateCounter) {
         cachedUpdateCounter();
     }
 }
-
-// =========================================================================
-// EVENT LISTENERS
-// =========================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
     if (langUIElements.langToggle) {

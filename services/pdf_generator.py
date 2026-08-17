@@ -33,17 +33,6 @@ mjx-container { page-break-inside: avoid !important; margin: 6px 0 !important; }
 
 
 def generate_pdf_from_docx(docx_path: str, source_text_html: str, input_format: str) -> tuple[str, str]:
-    """
-    Generate PDF from DOCX file based on the current operating system.
-    
-    Args:
-        docx_path: Path to the intermediate DOCX file.
-        source_text_html: HTML string for Linux PDF generation.
-        input_format: Pandoc input format string.
-        
-    Returns:
-        A tuple containing (pdf_path, error_message).
-    """
     current_os = platform.system()
     if current_os == 'Windows':
         return _generate_pdf_windows(docx_path)
@@ -52,15 +41,6 @@ def generate_pdf_from_docx(docx_path: str, source_text_html: str, input_format: 
 
 
 def _generate_pdf_windows(docx_path: str) -> tuple[str, str]:
-    """
-    Generate PDF using Windows COM automation.
-    
-    Args:
-        docx_path: Path to the DOCX file to convert.
-        
-    Returns:
-        A tuple containing (pdf_path, error_message).
-    """
     import win32com.client
     import pythoncom
     
@@ -107,20 +87,13 @@ def _generate_pdf_windows(docx_path: str) -> tuple[str, str]:
 
 
 def _generate_pdf_linux(source_text_html: str, input_format: str) -> tuple[str, str]:
-    """
-    Generate PDF using Playwright and Pandoc.
-    
-    Args:
-        source_text_html: HTML string to render.
-        input_format: Pandoc input format string.
-        
-    Returns:
-        A tuple containing (pdf_path, error_message).
-    """
     from playwright.sync_api import sync_playwright
     
     temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
     temp_pdf.close()
+    
+    playwright = None
+    browser = None
     
     try:
         html_string = pypandoc.convert_text(
@@ -129,31 +102,38 @@ def _generate_pdf_linux(source_text_html: str, input_format: str) -> tuple[str, 
         
         html_string = html_string.replace('</head>', f'{_PDF_CSS_STYLES}</head>')
         
-        with sync_playwright() as playwright:
-            # FIXED: Add full sandboxing and stability flags for Linux headless Chromium to bypass /dev/shm memory limits
-            browser = playwright.chromium.launch(
-                headless=True,
-                args=[
-                    "--disable-dev-shm-usage",
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-gpu"
-                ]
-            )
-            page = browser.new_page()
-            page.set_content(html_string, wait_until='networkidle')
-            page.pdf(
-                path=temp_pdf.name,
-                format='A4',
-                margin={
-                    'top': '2.54cm', 
-                    'right': '2.54cm', 
-                    'bottom': '2.54cm', 
-                    'left': '2.54cm'
-                },
-                print_background=True
-            )
-            
+        playwright = sync_playwright().start()
+        browser = playwright.chromium.launch(
+            headless=True,
+            args=[
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-gpu"
+            ]
+        )
+        page = browser.new_page()
+        page.set_content(html_string, wait_until='networkidle')
+        
+        page.evaluate("""() => {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                return window.MathJax.typesetPromise();
+            }
+        }""")
+        page.wait_for_timeout(300)
+
+        page.pdf(
+            path=temp_pdf.name,
+            format='A4',
+            margin={
+                'top': '2.54cm', 
+                'right': '2.54cm', 
+                'bottom': '2.54cm', 
+                'left': '2.54cm'
+            },
+            print_background=True
+        )
+        
         return temp_pdf.name, None
         
     except Exception as e:
@@ -162,3 +142,15 @@ def _generate_pdf_linux(source_text_html: str, input_format: str) -> tuple[str, 
         except OSError:
             pass
         return None, f"Linux PDF Engine Error: {str(e)}"
+    finally:
+        # Guarantee complete Chromium process teardown
+        if browser:
+            try:
+                browser.close()
+            except Exception:
+                pass
+        if playwright:
+            try:
+                playwright.stop()
+            except Exception:
+                pass

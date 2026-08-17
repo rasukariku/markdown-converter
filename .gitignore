@@ -66,6 +66,7 @@ coverage.xml
 bundle.py
 project_bundle.txt
 bundle_gui.exe
+SourceCraft.exe
 
 # =====================================================================
 # App-Specific / Local Test Artifacts
