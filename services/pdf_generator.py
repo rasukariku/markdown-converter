@@ -15,15 +15,20 @@ body {
     font-family: "Times New Roman", serif; 
     font-size: 16px; 
     line-height: 1.5; 
-    text-align: justify; 
+    text-align: left; 
     color: black; 
 }
-h1, h2, h3, h4 { line-height: 1.2; margin-bottom: 8px; text-align: left; font-family: "Times New Roman", serif; }
-p { margin-bottom: 10px; margin-top: 0; }
+h1 { font-size: 24px; font-weight: bold; line-height: 1.25; margin-top: 20px; margin-bottom: 8px; text-align: left; font-family: "Times New Roman", serif; page-break-after: avoid; }
+h2 { font-size: 20px; font-weight: bold; line-height: 1.25; margin-top: 18px; margin-bottom: 8px; text-align: left; font-family: "Times New Roman", serif; page-break-after: avoid; }
+h3 { font-size: 17px; font-weight: bold; line-height: 1.3; margin-top: 16px; margin-bottom: 6px; text-align: left; font-family: "Times New Roman", serif; page-break-after: avoid; }
+h4 { font-size: 16px; font-weight: bold; line-height: 1.3; margin-top: 14px; margin-bottom: 4px; text-align: left; font-family: "Times New Roman", serif; page-break-after: avoid; }
+h5 { font-size: 15px; font-weight: bold; font-style: italic; line-height: 1.3; margin-top: 12px; margin-bottom: 4px; text-align: left; font-family: "Times New Roman", serif; page-break-after: avoid; }
+h6 { font-size: 14px; font-weight: bold; font-style: italic; color: #444; line-height: 1.3; margin-top: 10px; margin-bottom: 4px; text-align: left; font-family: "Times New Roman", serif; page-break-after: avoid; }
+p { margin-bottom: 10px; margin-top: 0; text-align: left; }
 table { width: 100%; border-collapse: collapse; margin: 15px 0; page-break-inside: avoid; }
 th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; }
 th { font-weight: bold; background-color: #f3f4f6; }
-blockquote { margin: 10px 20px; padding-left: 10px; border-left: 3px solid #000; font-style: italic; }
+blockquote { margin: 10px 20px; padding-left: 10px; border-left: 3px solid #3b82f6; font-style: italic; color: #555; }
 hr { border: 0; border-top: 1px solid #000; margin: 16px 0; }
 pre, code { font-family: "Courier New", monospace; font-size: 14px; page-break-inside: avoid; }
 pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }

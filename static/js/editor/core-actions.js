@@ -18,7 +18,7 @@ const FONT_NAME_TIMES_NEW_ROMAN = "Times New Roman";
 // =========================================================================
 
 /**
- * Executes an editor formatting command and synchronizes document state.
+ * Executes an editor formatting command with precise selection-only wrapping for Code Blocks.
  *
  * @param {string} cmd - The document.execCommand identifier.
  * @param {string|boolean|null} [value=null] - Optional argument for the command.
@@ -32,15 +32,40 @@ export function formatDoc(
   checkToolbarActive,
 ) {
   try {
-    let commandValue = value;
-    // Normalize block formatting tag wrapping for cross-browser compliance
-    if (cmd === "formatBlock" && value) {
-      commandValue = value.startsWith("<") ? value : `<${value}>`;
+    const sel = window.getSelection();
+
+    // Custom non-destructive Code Block handling: wraps ONLY selected text
+    if (cmd === "formatBlock" && (value === "PRE" || value === "<PRE>")) {
+      if (sel.rangeCount > 0 && dom.renderedOutput.contains(sel.anchorNode)) {
+        const range = sel.getRangeAt(0);
+        const selectedText = sel.toString();
+
+        const preEl = document.createElement("pre");
+        preEl.setAttribute("contenteditable", "false");
+        preEl.setAttribute("data-language", "");
+        const codeEl = document.createElement("code");
+
+        codeEl.textContent = selectedText.trim()
+          ? selectedText
+          : "// code here";
+        preEl.appendChild(codeEl);
+
+        range.deleteContents();
+        range.insertNode(preEl);
+
+        range.setStartAfter(preEl);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    } else {
+      let commandValue = value;
+      if (cmd === "formatBlock" && value) {
+        commandValue = value.startsWith("<") ? value : `<${value}>`;
+      }
+      document.execCommand(cmd, false, commandValue);
     }
 
-    document.execCommand(cmd, false, commandValue);
-
-    // Enforce formal serif font standards after specific structural mutations
     if (cmd === "createLink" || cmd === "unlink" || cmd === "insertHTML") {
       document.execCommand("fontName", false, FONT_NAME_TIMES_NEW_ROMAN);
     }
@@ -59,30 +84,15 @@ export function formatDoc(
   }
 }
 
-/**
- * Inserts a horizontal rule into the active editor position.
- *
- * @param {Function} formatDoc - The bound formatDoc dispatch handler.
- */
 export function insertHorizontalRule(formatDoc) {
   formatDoc("insertHorizontalRule");
 }
 
-/**
- * Toggles the collapsed/expanded state of the secondary toolbar.
- */
 export function toggleToolbar() {
   const isExpanded = dom.mainToolbar.classList.toggle("expanded");
   dom.iconExpand.innerHTML = isExpanded ? SVG_ICON_EXPAND : SVG_ICON_COLLAPSE;
 }
 
-/**
- * Sets text directionality (LTR/RTL) for selected blocks.
- *
- * @param {string} dir - Direction attribute value ('ltr' | 'rtl').
- * @param {Function} formatDoc - The bound formatDoc dispatch handler.
- * @param {Function} syncRenderedToRaw - Synchronization callback.
- */
 export function setDirection(dir, formatDoc, syncRenderedToRaw) {
   const sel = window.getSelection();
 
@@ -105,9 +115,6 @@ export function setDirection(dir, formatDoc, syncRenderedToRaw) {
   }
 }
 
-/**
- * Toggles fullscreen mode for the editor container.
- */
 export function toggleFullscreen() {
   const isFS = dom.editorContainer.classList.toggle("fullscreen");
   document.body.classList.toggle("is-fullscreen", isFS);
@@ -115,4 +122,57 @@ export function toggleFullscreen() {
     ? SVG_ICON_FULLSCREEN
     : SVG_ICON_EXIT_FULLSCREEN;
   document.body.style.overflow = isFS ? "hidden" : "";
+}
+
+/**
+ * Toggles inline code formatting (<code>...</code>) on the active selection.
+ * Handles adding, editing, and unwrapping (removing) inline code cleanly.
+ *
+ * @param {Function} syncRenderedToRaw - Synchronization callback.
+ * @param {Function} checkToolbarActive - Toolbar active state callback.
+ */
+export function toggleInlineCode(syncRenderedToRaw, checkToolbarActive) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !dom.renderedOutput.contains(sel.anchorNode)) return;
+
+  const range = sel.getRangeAt(0);
+  let parentEl =
+    sel.anchorNode.nodeType === 3
+      ? sel.anchorNode.parentElement
+      : sel.anchorNode;
+  const existingCode = parentEl.closest("code");
+
+  // UNWRAP (Remove inline code format if already inside a code element)
+  if (existingCode && existingCode.parentElement.tagName !== "PRE") {
+    const parent = existingCode.parentNode;
+    while (existingCode.firstChild) {
+      parent.insertBefore(existingCode.firstChild, existingCode);
+    }
+    parent.removeChild(existingCode);
+  } else if (!range.collapsed) {
+    // WRAP (Convert selected text into inline <code> tag)
+    const codeEl = document.createElement("code");
+    codeEl.textContent = sel.toString();
+    range.deleteContents();
+    range.insertNode(codeEl);
+
+    range.setStartAfter(codeEl);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    // INSERT placeholder code if nothing is selected
+    const codeEl = document.createElement("code");
+    codeEl.textContent = "code";
+    range.insertNode(codeEl);
+    range.selectNodeContents(codeEl);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  if (dom.renderedOutput && document.activeElement !== dom.renderedOutput) {
+    dom.renderedOutput.focus();
+  }
+  if (typeof checkToolbarActive === "function") checkToolbarActive();
+  if (typeof syncRenderedToRaw === "function") syncRenderedToRaw();
 }

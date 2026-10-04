@@ -1,18 +1,20 @@
 /* =====================================================================
-Base Layout
-===================================================================== */
+   Base Layout Configuration
+   ===================================================================== */
 body {
-    font-family: 'Poppins', sans-serif;
-    background-color: var(--bg-main);
-    color: var(--text-main);
-    max-width: 1000px;
-    margin: 40px auto;
-    
-    /* Consolidated padding shorthand to eliminate redundant property parsing.
-       The 120px bottom padding prevents content overlap with fixed UI elements. */
-    padding: 20px 20px 120px;
-    
-    /* Explicit 'ease' timing function to prevent cross-browser default inconsistencies. */
-    transition: background-color 0.3s ease, color 0.3s ease;
-    overflow-x: hidden;
+  font-family: "Poppins", sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  max-width: 1000px;
+  margin: 40px auto;
+
+  /* Consolidated padding shorthand to eliminate redundant property parsing.
+       The 120px bottom padding prevents content overlap with fixed floating controls. */
+  padding: 20px 20px 120px;
+
+  /* Deterministic transition curves across rendering engines */
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+  overflow-x: hidden;
 }

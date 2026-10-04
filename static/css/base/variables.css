@@ -1,28 +1,35 @@
 /* =====================================================================
-CSS Variables & Theme
-===================================================================== */
+   CSS Variables & Theming Tokens
+   ===================================================================== */
 :root {
-    --bg-main: #181a1b;
-    --bg-container: #202224;
-    --bg-toolbar: #2b2d31;
-    --text-main: #e8e6e3;
-    --text-muted: #a0a0a0;
-    --border-color: #3e4446;
-    --btn-tool-hover: #3e4446;
-    --modal-overlay: rgba(0, 0, 0, 0.6);
-    --textarea-border: #d97706;
+  --bg-main: #181a1b;
+  --bg-container: #202224;
+  --bg-toolbar: #2b2d31;
+  --text-main: #e8e6e3;
+  --text-muted: #a0a0a0;
+  --border-color: #3e4446;
+  --btn-tool-hover: #3e4446;
+  --modal-overlay: rgba(0, 0, 0, 0.6);
+  --textarea-border: #d97706;
+
+  /* Code editor popup specific tokens */
+  --code-popup-bg: #1e1e2e;
+  --code-editor-bg: #11111b;
+  --code-text-color: #a6adc8;
 }
 
 body.light-mode {
-    --bg-main: #f0f2f5;
-    --bg-container: #ffffff;
-    --bg-toolbar: #f6f8fa;
-    --text-main: #24292f;
-    --text-muted: #57606a;
-    --border-color: #d0d7de;
-    --btn-tool-hover: #ebecf0;
-    --modal-overlay: rgba(0, 0, 0, 0.3);
-    
-    /* Note: --textarea-border is inherited from :root. 
-       Redundant declaration removed to optimize CSSOM parsing. */
+  --bg-main: #f0f2f5;
+  --bg-container: #ffffff;
+  --bg-toolbar: #f6f8fa;
+  --text-main: #24292f;
+  --text-muted: #57606a;
+  --border-color: #d0d7de;
+  --btn-tool-hover: #ebecf0;
+  --modal-overlay: rgba(0, 0, 0, 0.3);
+
+  /* Light mode code editor tokens */
+  --code-popup-bg: #ffffff;
+  --code-editor-bg: #f8fafc;
+  --code-text-color: #1e293b;
 }

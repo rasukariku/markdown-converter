@@ -63,7 +63,11 @@ export function checkToolbarActive() {
     const select = document.getElementById("block-format-select");
     if (select && blockFormatValue) {
       const cleanVal = blockFormatValue.replace(/[<>]/g, "").toUpperCase();
-      if (["P", "H1", "H2", "H3", "PRE"].includes(cleanVal)) {
+      if (
+        ["P", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "PRE"].includes(
+          cleanVal,
+        )
+      ) {
         select.value = cleanVal;
       }
     }

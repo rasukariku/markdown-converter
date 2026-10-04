@@ -9,26 +9,15 @@ from docx.text.paragraph import Paragraph
 _RE_PSEUDO_LIST = re.compile(r'^([a-zA-Z0-9]{1,4}[\.\)]|\([a-zA-Z0-9]{1,4}\)|[\-\*\+•●○■□▪▫►>])\s+')
 _HR_PLACEHOLDER = '[[HR_PLACEHOLDER]]'
 
+# Standard character count threshold for body text auto-justification
+MIN_BODY_TEXT_LENGTH_FOR_JUSTIFY = 90
+
 
 def format_docx_document(doc: Document) -> Document:
     """
-    Apply formatting to a DOCX document, including styles, 
-    paragraph formatting, and table processing.
-    
-    Args:
-        doc: The python-docx Document object to format.
-        
-    Returns:
-        The formatted Document object.
+    Apply comprehensive formatting to a DOCX document including styles,
+    headings, code blocks, lists, and dynamic alignment.
     """
-    if doc.part.numbering_part is not None:
-        for lvl in doc.part.numbering_part.element.xpath('.//w:lvl'):
-            suff = lvl.find(qn('w:suff'))
-            if suff is None:
-                suff = OxmlElement('w:suff')
-                lvl.append(suff)
-            suff.set(qn('w:val'), 'space')
-    
     normal_style = doc.styles['Normal']
     normal_style.font.name = 'Times New Roman'
     normal_style.font.size = Pt(12)
@@ -90,15 +79,19 @@ def _process_paragraphs(doc: Document) -> None:
     for i, para in enumerate(paragraphs):
         text_clean = para.text.strip()
         style_name = para.style.name
+        
         has_math = bool(para._element.findall('.//' + qn('m:oMath'))) or bool(para._element.findall('.//' + qn('m:oMathPara')))
         has_drawing = bool(para._element.findall('.//' + qn('w:drawing')))
+        has_soft_break = bool(para._element.findall('.//' + qn('w:br')))
+        
         is_heading = style_name.startswith('Heading')
         is_list = ('List' in style_name or 'Bullet' in style_name or 'Compact' in style_name or bool(para._element.findall('.//' + qn('w:numPr'))))
-        is_code = 'Source Code' in style_name or 'Code' in style_name
+        is_code = 'Source Code' in style_name or 'Code' in style_name or 'Preformatted' in style_name
         is_pseudo_list = bool(_RE_PSEUDO_LIST.match(text_clean))
         is_quote = 'Quote' in style_name or 'Block Text' in style_name
-        
         is_hr = _HR_PLACEHOLDER in text_clean
+        
+        # 1. Process Horizontal Dividers
         if is_hr:
             p_el = para._element
             for run in list(para.runs):
@@ -125,6 +118,7 @@ def _process_paragraphs(doc: Document) -> None:
             para.paragraph_format.space_after = Pt(0)
             para.paragraph_format.left_indent = Pt(0)
             para.paragraph_format.first_line_indent = Pt(0)
+            para.alignment = WD_ALIGN_PARAGRAPH.LEFT
             has_border = True
             text_clean = ""
         else:
@@ -133,91 +127,153 @@ def _process_paragraphs(doc: Document) -> None:
         if not text_clean and not has_math and not has_drawing and not is_code and not has_border:
             removal_queue.append(para)
             continue
+
+        # 2. Unified Paragraph Layout, Spacing, and Alignment Decision Tree
+        if is_heading:
+            para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            para.paragraph_format.keep_with_next = True
+            para.paragraph_format.line_spacing = 1.2
             
-        if is_code:
+            heading_size = Pt(12)
+            space_before = Pt(10)
+            space_after = Pt(4)
+            is_italic_heading = False
+            
+            if 'Heading 1' in style_name:
+                heading_size = Pt(18)
+                space_before = Pt(16)
+                space_after = Pt(6)
+            elif 'Heading 2' in style_name:
+                heading_size = Pt(15)
+                space_before = Pt(13)
+                space_after = Pt(6)
+            elif 'Heading 3' in style_name:
+                heading_size = Pt(13)
+                space_before = Pt(10)
+                space_after = Pt(4)
+            elif 'Heading 4' in style_name:
+                heading_size = Pt(12)
+                space_before = Pt(8)
+                space_after = Pt(4)
+            elif 'Heading 5' in style_name:
+                heading_size = Pt(12)
+                space_before = Pt(6)
+                space_after = Pt(2)
+                is_italic_heading = True
+            elif 'Heading 6' in style_name:
+                heading_size = Pt(11)
+                space_before = Pt(6)
+                space_after = Pt(2)
+                is_italic_heading = True
+
+            para.paragraph_format.space_before = space_before
+            para.paragraph_format.space_after = space_after
+
+        elif is_code:
+            # Coding format: Monospace, single line spacing, indented block
+            para.alignment = WD_ALIGN_PARAGRAPH.LEFT
             para.paragraph_format.line_spacing = 1.0
-            para.paragraph_format.space_before = Pt(0)
-            para.paragraph_format.space_after = Pt(12)
+            para.paragraph_format.space_before = Pt(4)
+            para.paragraph_format.space_after = Pt(8)
             para.paragraph_format.left_indent = Pt(18)
             para.paragraph_format.first_line_indent = Pt(0)
-        else:
-            if not is_heading and not is_list and not is_quote and not has_border:
-                para.style = doc.styles['Normal']
+
+        elif is_list or is_pseudo_list:
+            # Bullet/Numbered lists: Strictly LEFT-aligned
+            para.alignment = WD_ALIGN_PARAGRAPH.LEFT
             para.paragraph_format.line_spacing = 1.5
             para.paragraph_format.space_before = Pt(0)
-            if is_list:
-                next_is_list = False
-                if i + 1 < len(paragraphs):
-                    next_para = paragraphs[i + 1]
-                    next_is_list = ('List' in next_para.style.name or 'Bullet' in next_para.style.name or 'Compact' in next_para.style.name or bool(next_para._element.findall('.//' + qn('w:numPr'))))
-                para.paragraph_format.space_after = Pt(5) if next_is_list else Pt(8)
-                ilvl_nodes = para._element.findall('.//' + qn('w:ilvl'))
-                level = int(ilvl_nodes[0].get(qn('w:val'))) if ilvl_nodes else 0
-                para.paragraph_format.left_indent = Pt(36 + (level * 36))
-                para.paragraph_format.first_line_indent = Pt(-18)
-            elif is_quote:
-                para.paragraph_format.left_indent = Cm(1.5)
-                para.paragraph_format.right_indent = Cm(1.5)
+            
+            next_is_list = False
+            if i + 1 < len(paragraphs):
+                next_para = paragraphs[i + 1]
+                next_is_list = ('List' in next_para.style.name or 'Bullet' in next_para.style.name or 'Compact' in next_para.style.name or bool(next_para._element.findall('.//' + qn('w:numPr'))))
+            para.paragraph_format.space_after = Pt(4) if next_is_list else Pt(8)
+            
+            ilvl_nodes = para._element.findall('.//' + qn('w:ilvl'))
+            level = int(ilvl_nodes[0].get(qn('w:val'))) if ilvl_nodes else 0
+            para.paragraph_format.left_indent = Pt(36 + (level * 36))
+            para.paragraph_format.first_line_indent = Pt(-18)
+
+        elif is_quote:
+            para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            para.paragraph_format.line_spacing = 1.5
+            para.paragraph_format.space_before = Pt(0)
+            para.paragraph_format.space_after = Pt(8)
+            para.paragraph_format.left_indent = Cm(1.5)
+            para.paragraph_format.right_indent = Cm(1.5)
+
+        else:
+            # Regular text paragraphs
+            if not has_border:
+                para.style = doc.styles['Normal']
+                para.paragraph_format.line_spacing = 1.5
+                para.paragraph_format.space_before = Pt(0)
                 para.paragraph_format.space_after = Pt(8)
-            else:
-                if not has_border:
-                    para.paragraph_format.space_after = Pt(8)
-                    para.paragraph_format.left_indent = Pt(0)
-                    para.paragraph_format.first_line_indent = Pt(0)
-                    
+                para.paragraph_format.left_indent = Pt(0)
+                para.paragraph_format.first_line_indent = Pt(0)
+
+                # Dynamic Justify: Apply strictly to multi-line narratives without soft breaks
+                word_count = len(text_clean.split())
+                is_long_narrative = (len(text_clean) >= MIN_BODY_TEXT_LENGTH_FOR_JUSTIFY) and (word_count >= 12)
+                
+                if is_long_narrative and not has_soft_break:
+                    para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                else:
+                    para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
+        # 3. Unified Typography & Run Formatting
         for run in para.runs:
             if run._element.findall('.//' + qn('m:oMath')):
                 continue
-            if is_code:
+            
+            rPr = run._element.get_or_add_rPr()
+            
+            # Detect inline code formatting produced by Pandoc verbatim markup
+            is_inline_code = (
+                'Verbatim' in run.style.name or 
+                'Code' in run.style.name or 
+                'Source' in run.style.name or 
+                run.font.name in ['Consolas', 'Courier New']
+            )
+
+            if is_code or is_inline_code:
                 run.font.name = 'Consolas'
-                run.font.size = Pt(10.5)
+                run.font.size = Pt(10.0) if is_code else Pt(10.5)
+                run.font.color.rgb = RGBColor(30, 41, 59)
+                
+                rFonts = rPr.find(qn('w:rFonts'))
+                if rFonts is None:
+                    rFonts = OxmlElement('w:rFonts')
+                    rPr.append(rFonts)
+                rFonts.set(qn('w:ascii'), 'Consolas')
+                rFonts.set(qn('w:hAnsi'), 'Consolas')
+                rFonts.set(qn('w:cs'), 'Consolas')
+            elif is_heading:
+                run.font.name = 'Times New Roman'
+                run.font.size = heading_size
+                run.font.bold = True
+                if is_italic_heading:
+                    run.font.italic = True
+                run.font.color.rgb = RGBColor(0, 0, 0)
             else:
                 run.font.name = 'Times New Roman'
-                if not is_heading and run.font.size is None:
+                if run.font.size is None:
                     run.font.size = Pt(12)
-                run.font.color.rgb = RGBColor(0, 0, 0)
-                rPr = run._element.get_or_add_rPr()
+                if run.font.color.rgb is None and 'Hyperlink' not in run.style.name:
+                    run.font.color.rgb = RGBColor(0, 0, 0)
+                
                 color_el = rPr.find(qn('w:color'))
                 if color_el is not None and qn('w:themeColor') in color_el.attrib:
                     del color_el.attrib[qn('w:themeColor')]
                 if 'Hyperlink' in run.style.name or 'Hyperlink' in style_name:
                     run.font.underline = True
-                rFonts = rPr.find(qn('w:rFonts'))
-                if rFonts is None:
-                    rFonts = OxmlElement('w:rFonts')
-                    rPr.append(rFonts)
-                rFonts.set(qn('w:ascii'), 'Times New Roman')
-                rFonts.set(qn('w:hAnsi'), 'Times New Roman')
-                rFonts.set(qn('w:cs'), 'Times New Roman')
-                for attr in ['w:asciiTheme', 'w:hAnsiTheme', 'w:cstheme']:
-                    if qn(attr) in rFonts.attrib:
-                        del rFonts.attrib[qn(attr)]
-            rPr = run._element.get_or_add_rPr()
+
             lang_el = rPr.find(qn('w:lang'))
             if lang_el is None:
                 lang_el = OxmlElement('w:lang')
                 rPr.append(lang_el)
             lang_el.set(qn('w:val'), 'id-ID')
-            
-        if is_heading:
-            if para.alignment is None:
-                para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            para.paragraph_format.space_after = Pt(12)
-        else:
-            if is_pseudo_list and not is_list:
-                para.paragraph_format.left_indent = Pt(36)
-                para.paragraph_format.first_line_indent = Pt(-18)
-            if is_code or has_border:
-                if para.alignment is None:
-                    para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            else:
-                if para.alignment is None:
-                    para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                    
-    for para in reversed(removal_queue):
-        p = para._element
-        if p.getparent() is not None:
-            p.getparent().remove(p)
 
 
 def _process_tables(doc: Document) -> None:

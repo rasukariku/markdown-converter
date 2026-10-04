@@ -2,281 +2,350 @@
 Editor Container & Toolbar
 ===================================================================== */
 .editor-container {
-    /* Positioning */
-    position: relative;
-    
-    /* Box Model */
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    
-    /* Visuals */
-    background-color: var(--bg-container);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-    
-    /* Transitions: Added explicit 'ease' timing function */
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+  /* Positioning */
+  position: relative;
+
+  /* Box Model */
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+
+  /* Visuals */
+  background-color: var(--bg-container);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+
+  /* Transitions: Added explicit 'ease' timing function */
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .toolbar {
-    /* Positioning */
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    
-    /* Layout */
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 5px;
-    
-    /* Box Model */
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border-color);
-    border-top-left-radius: 7px;
-    border-top-right-radius: 7px;
-    
-    /* Visuals */
-    background-color: var(--bg-toolbar);
-    
-    /* Transitions: Added explicit 'ease' timing function */
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+  /* Positioning */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  /* Layout */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+
+  /* Box Model */
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
+
+  /* Visuals */
+  background-color: var(--bg-toolbar);
+
+  /* Transitions: Added explicit 'ease' timing function */
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .tool-hidden {
-    display: none !important;
+  display: none !important;
 }
 
 .toolbar.expanded .tool-hidden {
-    display: flex !important;
+  display: flex !important;
 }
 
 .toolbar.expanded .divider.tool-hidden {
-    display: block !important;
+  display: block !important;
 }
 
 .divider {
-    /* Box Model */
-    width: 1px;
-    height: 24px;
-    margin: 0 5px;
-    
-    /* Visuals */
-    background-color: var(--border-color);
+  /* Box Model */
+  width: 1px;
+  height: 24px;
+  margin: 0 5px;
+
+  /* Visuals */
+  background-color: var(--border-color);
 }
 
-.btn-red, .btn-red-clear, .btn-amber, .btn-blue, .tool-btn {
-    /* Box Model */
-    height: 32px;
-    min-width: 32px;
-    padding: 5px 8px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    
-    /* Layout */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    vertical-align: middle;
-    
-    /* Visuals */
-    background-color: transparent;
-    
-    /* Interaction */
-    cursor: pointer;
-    user-select: none;
-    
-    /* Transitions: Added explicit 'ease' timing function */
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+.btn-red,
+.btn-red-clear,
+.btn-amber,
+.btn-blue,
+.tool-btn {
+  /* Box Model */
+  height: 32px;
+  min-width: 32px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  vertical-align: middle;
+
+  /* Visuals */
+  background-color: transparent;
+
+  /* Interaction */
+  cursor: pointer;
+  user-select: none;
+
+  /* Transitions: Added explicit 'ease' timing function */
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .btn-red {
-    /* Visuals */
-    color: #ff4d4d;
-    border-color: #ff4d4d;
+  /* Visuals */
+  color: #ff4d4d;
+  border-color: #ff4d4d;
 }
 
 .btn-red:hover {
-    /* Visuals */
-    background-color: rgba(255, 77, 77, 0.1);
+  /* Visuals */
+  background-color: rgba(255, 77, 77, 0.1);
 }
 
 .btn-red-clear {
-    /* Visuals */
-    color: #ef4444;
-    border-color: #ef4444;
+  /* Visuals */
+  color: #ef4444;
+  border-color: #ef4444;
 }
 
 .btn-red-clear:hover {
-    /* Visuals */
-    background-color: rgba(239, 68, 68, 0.15);
+  /* Visuals */
+  background-color: rgba(239, 68, 68, 0.15);
 }
 
 .btn-amber {
-    /* Visuals */
-    color: #f59e0b;
-    border-color: #f59e0b;
+  /* Visuals */
+  color: #f59e0b;
+  border-color: #f59e0b;
 }
 
 .btn-amber:hover {
-    /* Visuals */
-    background-color: rgba(245, 158, 11, 0.15);
+  /* Visuals */
+  background-color: rgba(245, 158, 11, 0.15);
 }
 
 .btn-blue {
-    /* Visuals */
-    color: #3b82f6;
-    border-color: #3b82f6;
+  /* Visuals */
+  color: #3b82f6;
+  border-color: #3b82f6;
 }
 
 .btn-blue:hover {
-    /* Visuals */
-    background-color: rgba(59, 130, 246, 0.15);
+  /* Visuals */
+  background-color: rgba(59, 130, 246, 0.15);
 }
 
 .tool-btn {
-    /* Box Model */
-    padding: 6px 10px;
-    border: none;
-    
-    /* Typography */
-    font-size: 16px;
-    color: var(--text-muted);
+  /* Box Model */
+  padding: 6px 10px;
+  border: none;
+
+  /* Typography */
+  font-size: 16px;
+  color: var(--text-muted);
 }
 
 .tool-btn:hover {
-    /* Visuals */
-    background-color: var(--btn-tool-hover);
-    color: var(--text-main);
+  /* Visuals */
+  background-color: var(--btn-tool-hover);
+  color: var(--text-main);
 }
 
 .tool-btn svg {
-    /* Box Model */
-    width: 16px;
-    height: 16px;
-    
-    /* Visuals */
-    fill: currentColor;
+  /* Box Model */
+  width: 16px;
+  height: 16px;
+
+  /* Visuals */
+  fill: currentColor;
 }
 
 .tool-btn.bold {
-    /* Typography */
-    font-family: serif;
-    font-size: 18px;
-    font-weight: bold;
+  /* Typography */
+  font-family: serif;
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .tool-btn.italic {
-    /* Typography */
-    font-family: serif;
-    font-size: 18px;
-    font-style: italic;
+  /* Typography */
+  font-family: serif;
+  font-size: 18px;
+  font-style: italic;
 }
 
 .tool-btn.active {
-    /* Visuals */
-    background-color: var(--border-color);
-    color: var(--text-main);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+  /* Visuals */
+  background-color: var(--border-color);
+  color: var(--text-main);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .tool-select {
-    /* Box Model */
-    padding: 4px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    
-    /* Typography */
-    font-family: 'Poppins', sans-serif;
-    font-size: 13px;
-    color: var(--text-main);
-    
-    /* Visuals: Changed 'background' to 'background-color' for performance */
-    background-color: var(--bg-main);
-    
-    /* Interaction */
-    cursor: pointer;
+  /* Box Model */
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+
+  /* Typography */
+  font-family: "Poppins", sans-serif;
+  font-size: 13px;
+  color: var(--text-main);
+
+  /* Visuals: Changed 'background' to 'background-color' for performance */
+  background-color: var(--bg-main);
+
+  /* Interaction */
+  cursor: pointer;
 }
 
 .tool-select:focus {
-    /* Visuals */
-    outline: none;
-    border-color: #3b82f6;
+  /* Visuals */
+  outline: none;
+  border-color: #3b82f6;
 }
 
 /* =====================================================================
 Dropdown Menu (Markdown Actions)
 ===================================================================== */
 .toolbar-dropdown {
-    /* Positioning */
-    position: relative;
-    
-    /* Layout */
-    display: inline-flex;
-    align-items: center;
-    vertical-align: middle;
+  /* Positioning */
+  position: relative;
+
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
 }
 
 .dropdown-content {
-    /* Positioning */
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 200;
-    
-    /* Box Model */
-    min-width: 260px;
-    margin-top: 4px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    
-    /* Layout */
-    display: none;
-    overflow: hidden;
-    
-    /* Visuals */
-    background-color: var(--bg-toolbar);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    
-    /* Animation */
-    animation: dropdownPop 0.15s ease-out;
+  /* Positioning */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 200;
+
+  /* Box Model */
+  min-width: 260px;
+  margin-top: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+
+  /* Layout */
+  display: none;
+  overflow: hidden;
+
+  /* Visuals */
+  background-color: var(--bg-toolbar);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  /* Animation */
+  animation: dropdownPop 0.15s ease-out;
 }
 
 @keyframes dropdownPop {
-    from { 
-        transform: translateY(-5px); 
-        opacity: 0; 
-    }
-    to { 
-        transform: translateY(0); 
-        opacity: 1; 
-    }
+  from {
+    transform: translateY(-5px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .dropdown-content.active {
-    /* Layout */
-    display: block;
+  /* Layout */
+  display: block;
 }
 
 .dropdown-content a {
-    /* Box Model */
-    padding: 10px 14px;
-    
-    /* Layout */
-    display: block;
-    
-    /* Typography */
-    font-size: 13.5px;
-    font-family: 'Poppins', sans-serif;
-    color: var(--text-main);
-    text-decoration: none;
-    
-    /* Interaction */
-    transition: background-color 0.2s ease, color 0.2s ease;
+  /* Box Model */
+  padding: 10px 14px;
+
+  /* Layout */
+  display: block;
+
+  /* Typography */
+  font-size: 13.5px;
+  font-family: "Poppins", sans-serif;
+  color: var(--text-main);
+  text-decoration: none;
+
+  /* Interaction */
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .dropdown-content a:hover {
-    /* Visuals */
-    background-color: var(--btn-tool-hover);
-    color: #ffffff;
+  /* Visuals */
+  background-color: var(--btn-tool-hover);
+  color: #ffffff;
+}
+
+/* =====================================================================
+   Block Format Selector Preview Styling
+   ===================================================================== */
+.tool-select option {
+  background-color: var(--bg-container);
+  color: var(--text-main);
+  padding: 6px 10px;
+}
+
+.tool-select option.opt-p {
+  font-size: 14px;
+}
+
+.tool-select option.opt-h1 {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.tool-select option.opt-h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.tool-select option.opt-h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.tool-select option.opt-h4 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tool-select option.opt-h5 {
+  font-size: 13.5px;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.tool-select option.opt-h6 {
+  font-size: 12.5px;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.tool-select option.opt-quote {
+  font-style: italic;
+  color: #3b82f6;
+}
+
+.tool-select option.opt-pre {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 13px;
 }

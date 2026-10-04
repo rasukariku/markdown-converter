@@ -1,506 +1,694 @@
 /* =====================================================================
-Rendered Output Area (WYSIWYG Markdown Preview & Editor)
-===================================================================== */
+   Rendered Output Area (WYSIWYG Markdown Preview & Editor)
+   ===================================================================== */
 #rendered-output {
-    /* Box Model */
-    min-height: 400px;
-    padding: 25px;
-    border-bottom-left-radius: 7px;
-    border-bottom-right-radius: 7px;
-    
-    /* Typography */
-    font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif;
-    font-size: 15px;
-    line-height: 1.7;
-    color: var(--text-main);
-    
-    /* Visuals */
-    background-color: var(--bg-container);
-    
-    /* Layout */
-    overflow-y: auto;
-    
-    /* Transitions */
-    transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 400px;
+  padding: 25px;
+  border-bottom-left-radius: 7px;
+  border-bottom-right-radius: 7px;
+  font-family: "Poppins", "Segoe UI", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-main);
+  background-color: var(--bg-container);
+  overflow-y: auto;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 #rendered-output:focus {
-    /* Visuals */
-    outline: none;
+  outline: none;
 }
 
 #rendered-output:empty::before {
-    content: attr(data-placeholder);
-    color: var(--text-muted);
-    opacity: 0.5;
-    pointer-events: none;
-    cursor: text;
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: text;
 }
 
-/* Overrides Word inline layout limits to force full-width container expansion */
+/* Override external pasted limits to ensure full-width expansion */
 #rendered-output p,
 #rendered-output div,
 #rendered-output section {
-    max-width: 100% !important;
-    width: auto !important;
-    box-sizing: border-box;
+  max-width: 100% !important;
+  width: auto !important;
+  box-sizing: border-box;
 }
 
 /* =====================================================================
-Obsidian-like Document Typography
-===================================================================== */
+   Obsidian-like Document Typography & Paragraph Alignment
+   ===================================================================== */
 
-/* Paragraphs */
+/* Default paragraphs are left-aligned with long string wrap protection */
 #rendered-output p {
-    margin-top: 0;
-    margin-bottom: 16px;
-    line-height: 1.7;
+  margin-top: 0;
+  margin-bottom: 16px;
+  line-height: 1.7;
+  text-align: left;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  transition: text-align 0.15s ease;
+}
+
+/* Dynamic auto-justify rule triggered when text exceeds single line boundary */
+#rendered-output p.auto-justified {
+  text-align: justify !important;
+  text-align-last: left;
 }
 
 /* Headings with clear hierarchies and subtle borders */
 #rendered-output h1 {
-    font-size: 1.8em;
-    font-weight: 700;
-    margin-top: 28px;
-    margin-bottom: 16px;
-    line-height: 1.3;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.3em;
+  font-size: 1.8em;
+  font-weight: 700;
+  margin-top: 28px;
+  margin-bottom: 14px;
+  line-height: 1.3;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3em;
 }
 
 #rendered-output h2 {
-    font-size: 1.45em;
-    font-weight: 600;
-    margin-top: 26px;
-    margin-bottom: 16px;
-    line-height: 1.3;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.3em;
+  font-size: 1.5em;
+  font-weight: 600;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  line-height: 1.3;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.25em;
 }
 
 #rendered-output h3 {
-    font-size: 1.25em;
-    font-weight: 600;
-    margin-top: 24px;
-    margin-bottom: 16px;
-    line-height: 1.3;
+  font-size: 1.3em;
+  font-weight: 600;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  line-height: 1.35;
 }
 
 #rendered-output h4 {
-    font-size: 1.1em;
-    font-weight: 600;
-    margin-top: 22px;
-    margin-bottom: 16px;
-    line-height: 1.3;
+  font-size: 1.15em;
+  font-weight: 600;
+  margin-top: 18px;
+  margin-bottom: 8px;
+  line-height: 1.4;
 }
 
-/* Styled Lists */
-#rendered-output ul, 
+#rendered-output h5 {
+  font-size: 1.05em;
+  font-weight: 600;
+  font-style: italic;
+  margin-top: 16px;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+#rendered-output h6 {
+  font-size: 0.95em;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--text-muted);
+  margin-top: 14px;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+#rendered-output ul,
 #rendered-output ol {
-    margin-top: 0;
-    margin-bottom: 16px;
-    padding-left: 2em;
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding-left: 2em;
 }
 
 #rendered-output li {
-    margin-bottom: 6px;
+  margin-bottom: 6px;
 }
 
-/* Bold and Italic text */
-#rendered-output strong, 
+#rendered-output strong,
 #rendered-output b {
-    font-weight: 700;
+  font-weight: 700;
 }
 
-#rendered-output em, 
+#rendered-output em,
 #rendered-output i {
-    font-style: italic;
+  font-style: italic;
 }
 
-/* Obsidian styled Blockquotes */
 #rendered-output blockquote {
-    border-left: 4px solid #3b82f6;
-    padding: 2px 16px;
-    margin: 0 0 16px 0;
-    background-color: rgba(128, 128, 128, 0.07);
-    border-radius: 0 6px 6px 0;
+  border-left: 4px solid #3b82f6;
+  padding: 2px 16px;
+  margin: 0 0 16px 0;
+  background-color: rgba(128, 128, 128, 0.07);
+  border-radius: 0 6px 6px 0;
 }
 
 #rendered-output blockquote p {
-    margin-bottom: 0;
-    font-style: italic;
-    color: var(--text-muted) !important;
+  margin-bottom: 0;
+  font-style: italic;
+  color: var(--text-muted) !important;
 }
 
-/* Code Blocks & Inline Code */
+/* =====================================================================
+   Interactive Code Blocks (Click-to-Edit Interface)
+   ===================================================================== */
 #rendered-output pre {
-    background-color: var(--bg-toolbar);
-    padding: 14px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    margin: 0 0 16px;
-    overflow-x: auto;
+  position: relative;
+  background-color: var(--bg-toolbar);
+  padding: 28px 16px 14px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin: 0 0 16px;
+  overflow-x: auto;
+  cursor: pointer;
+  user-select: text;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
 }
 
-#rendered-output code {
-    font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 13.5px;
-    background-color: rgba(128, 128, 128, 0.18);
-    padding: 2px 6px;
-    border-radius: 4px;
+#rendered-output pre:hover {
+  border-color: #8b5cf6;
+  background-color: rgba(139, 92, 246, 0.05);
+  box-shadow:
+    0 0 0 1px #8b5cf6,
+    0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* Language indicator badge positioned at the top-right corner */
+#rendered-output pre::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  font-family: "Poppins", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  pointer-events: none;
+}
+
+/* Interactive click-to-edit indicator on hover */
+#rendered-output pre::after {
+  content: "✎ Click to edit code";
+  position: absolute;
+  top: 6px;
+  left: 12px;
+  font-family: "Poppins", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b5cf6;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+#rendered-output pre:hover::after {
+  opacity: 1;
+}
+
+/* Inline Code Badge Styling (Pill format outside preformatted blocks) */
+#rendered-output code:not(pre code) {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 13.5px;
+  background-color: rgba(128, 128, 128, 0.22);
+  color: #e06c75;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  user-select: text;
+}
+
+body.light-mode #rendered-output code:not(pre code) {
+  background-color: #f1f5f9;
+  color: #b91c1c;
+  border: 1px solid #cbd5e1;
 }
 
 #rendered-output pre code {
-    background-color: transparent;
-    padding: 0;
-    border-radius: 0;
-    font-size: 13px;
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--code-text-color);
 }
 
-/* Beautiful GFM-Style Tables */
+/* =====================================================================
+   GFM-Style Tables
+   ===================================================================== */
 #rendered-output table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 0 0 16px;
-    background-color: var(--bg-container);
-    color: var(--text-main);
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 16px;
+  background-color: var(--bg-container);
+  color: var(--text-main);
 }
 
-#rendered-output th, 
+#rendered-output th,
 #rendered-output td {
-    border: 1px solid var(--border-color);
-    padding: 10px 12px;
-    text-align: left;
-    vertical-align: top;
-    word-wrap: break-word;
+  border: 1px solid var(--border-color);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  word-wrap: break-word;
 }
 
 #rendered-output th {
-    background-color: rgba(128, 128, 128, 0.12);
-    font-weight: 600;
+  background-color: rgba(128, 128, 128, 0.12);
+  font-weight: 600;
 }
 
 /* =====================================================================
-   Horizontal Rule Component - Dynamic Rule Character Renderer
+   Horizontal Rule Dynamic Elements
    ===================================================================== */
 .hr-raw-line {
-    /* Typography */
-    font-family: 'Consolas', 'Courier New', monospace !important;
-    font-size: 14.5px;
-    color: #c084fc !important;
-    text-align: center;
-    
-    /* Box Model */
-    margin: 24px auto;
-    outline: none;
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-    
-    /* Positioning & Interaction */
-    position: relative;
-    cursor: text;
+  font-family: "Consolas", "Courier New", monospace !important;
+  font-size: 14.5px;
+  color: #c084fc !important;
+  text-align: center;
+  margin: 24px auto;
+  outline: none;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  cursor: text;
 }
 
-/* Out of focus: hide characters and draw visual line */
 .hr-raw-line:not(.hr-focused) {
-    color: transparent !important;
-    -webkit-text-fill-color: transparent !important;
-    font-size: 0px !important;
-    line-height: 0 !important;
-    height: 12px;
-    overflow: hidden;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  font-size: 0px !important;
+  line-height: 0 !important;
+  height: 12px;
+  overflow: hidden;
 }
 
-/* DEFAULT: Single Solid Line (---) */
 .hr-raw-line:not(.hr-focused)::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    height: 2px;
-    background-color: var(--border-color);
-    pointer-events: none;
-    transition: background-color 0.2s;
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background-color: var(--border-color);
+  pointer-events: none;
+  transition: background-color 0.2s ease;
 }
 
-/* Double Line when === is inputted */
 .hr-raw-line[data-chars*="="]:not(.hr-focused)::after {
-    height: 4px;
-    border-top: 2px solid var(--border-color);
-    border-bottom: 2px solid var(--border-color);
-    background-color: transparent !important;
+  height: 4px;
+  border-top: 2px solid var(--border-color);
+  border-bottom: 2px solid var(--border-color);
+  background-color: transparent !important;
 }
 
-/* Dotted Line when *** is inputted */
 .hr-raw-line[data-chars*="*"]:not(.hr-focused)::after {
-    height: 0;
-    border-top: 2px dotted var(--border-color);
-    background-color: transparent !important;
+  height: 0;
+  border-top: 2px dotted var(--border-color);
+  background-color: transparent !important;
 }
 
-/* Dashed Line when ___ is inputted */
 .hr-raw-line[data-chars*="_"]:not(.hr-focused)::after {
-    height: 0;
-    border-top: 2px dashed var(--border-color);
-    background-color: transparent !important;
+  height: 0;
+  border-top: 2px dashed var(--border-color);
+  background-color: transparent !important;
 }
 
-/* Hover effect */
 .hr-raw-line:hover:not(.hr-focused)::after {
-    border-color: #8b5cf6 !important;
-    background-color: #8b5cf6 !important;
+  border-color: #8b5cf6 !important;
+  background-color: #8b5cf6 !important;
 }
 
-/* Focused State: Renders purple Obsidian typing block */
 .hr-raw-line.hr-focused {
-    display: block !important;
-    font-size: 14.5px !important;
-    line-height: 1.5 !important;
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-    background-color: #3e2d54 !important;
-    border-radius: 4px;
-    padding: 6px 16px;
-    width: max-content !important;
-    margin: 16px auto;
-    height: auto !important;
-    overflow: visible !important;
-    caret-color: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  display: block !important;
+  font-size: 14.5px !important;
+  line-height: 1.5 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: #3e2d54 !important;
+  border-radius: 4px;
+  padding: 6px 16px;
+  width: max-content !important;
+  margin: 16px auto;
+  height: auto !important;
+  overflow: visible !important;
+  caret-color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .hr-raw-line.hr-focused::after {
-    display: none !important;
+  display: none !important;
 }
 
-/* =====================================================================
-   Horizontal Rule Selector Modal Options
-   ===================================================================== */
 .hr-select-btn {
-    /* Box Model */
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    
-    /* Layout */
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    text-align: left;
-    
-    /* Visuals */
-    background-color: var(--bg-toolbar);
-    color: var(--text-main);
-    
-    /* Interaction */
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  background-color: var(--bg-toolbar);
+  color: var(--text-main);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .hr-select-btn:hover {
-    background-color: var(--btn-tool-hover);
-    border-color: #8b5cf6;
+  background-color: var(--btn-tool-hover);
+  border-color: #8b5cf6;
 }
 
 /* =====================================================================
-   Obsidian-Style Interactive Math Components
+   LaTeX Math Interactive Wrappers & Floating Popup
    ===================================================================== */
-
 .math-raw-line {
-    display: none !important;
+  display: none !important;
 }
 
 .math-wrapper {
-    /* Positioning */
-    position: relative;
-    vertical-align: middle;
-    
-    /* Layout */
-    display: inline-block;
-    box-sizing: border-box;
-    
-    /* Box Model */
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 2px 8px;
-    
-    /* Visuals */
-    background-color: var(--bg-main);
-    
-    /* Interaction */
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  vertical-align: middle;
+  display: inline-block;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 2px 8px;
+  background-color: var(--bg-main);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .inline-math-wrapper {
-    /* Box Model */
-    margin: 0 4px;
+  margin: 0 4px;
 }
 
 .display-math-wrapper {
-    /* Layout */
-    display: block !important;
-    width: fit-content !important;
-    max-width: 100% !important;
-    text-align: center !important;
-    
-    /* Box Model */
-    margin: 16px auto !important;
-    padding: 12px 24px !important;
+  display: block !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  text-align: center !important;
+  margin: 16px auto !important;
+  padding: 12px 24px !important;
 }
 
 .math-wrapper:hover {
-    /* Visuals */
-    background-color: rgba(139, 92, 246, 0.08) !important;
-    border-color: #8b5cf6 !important;
+  background-color: rgba(139, 92, 246, 0.08) !important;
+  border-color: #8b5cf6 !important;
 }
 
-/* Outer purple rounded-dashed outline using pseudo-elements */
 .math-wrapper::after {
-    content: '';
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border: 1.5px dashed #8b5cf6;
-    border-radius: 8px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 1.5px dashed #8b5cf6;
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
 }
 
-/* Hover Transition Rule Block for Outer Dashed Border */
 .math-wrapper:hover::after {
-    opacity: 1;
+  opacity: 1;
 }
 
 .math-preview-rendered {
-    /* Layout */
-    display: inline-block;
-    max-width: 100%;
+  display: inline-block;
+  max-width: 100%;
 }
 
-/* =====================================================================
-   LaTeX Floating Editor Popup
-   ===================================================================== */
 .math-popup-container {
-    /* Positioning */
-    position: absolute;
-    z-index: 100000;
-    
-    /* Box Model */
-    width: 400px;
-    height: 200px;
-    min-width: 250px;
-    min-height: 140px;
-    padding: 12px;
-    box-sizing: border-box;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    
-    /* Layout */
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-    overflow: hidden;
-    resize: both;
-    
-    /* Typography & Visuals */
-    font-family: 'Poppins', sans-serif;
-    background-color: #1e1e2e;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  position: absolute;
+  z-index: 100000;
+  width: 400px;
+  height: 200px;
+  min-width: 250px;
+  min-height: 140px;
+  padding: 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  resize: both;
+  font-family: "Poppins", sans-serif;
+  background-color: #1e1e2e;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .math-popup-container.active {
-    /* Layout & Animation */
-    display: flex;
-    animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .math-popup-toolbar {
-    /* Box Model */
-    height: 24px;
-    
-    /* Layout */
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    
-    /* Interaction */
-    user-select: none;
-    cursor: grab;
+  height: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  cursor: grab;
 }
 
 .math-popup-toolbar:active {
-    /* Interaction */
-    cursor: grabbing;
+  cursor: grabbing;
 }
 
 .math-popup-title {
-    /* Typography */
-    font-size: 11px;
-    font-weight: 700;
-    color: #8b5cf6;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b5cf6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .math-popup-btn {
-    /* Box Model */
-    padding: 4px 8px;
-    border: none;
-    border-radius: 4px;
-    
-    /* Typography */
-    font-size: 11px;
-    font-weight: 600;
-    color: #a0a0a0;
-    
-    /* Visuals & Interaction */
-    background: transparent;
-    cursor: pointer;
-    transition: background-color 0.15s, color 0.15s;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a0a0a0;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .math-popup-btn:hover {
-    /* Visuals */
-    background-color: #3e4446;
-    color: #ffffff;
+  background-color: #3e4446;
+  color: #ffffff;
 }
 
 #math-popup-close:hover {
-    /* Visuals */
-    color: #ff4d4d;
-    background-color: rgba(255, 77, 77, 0.1);
+  color: #ff4d4d;
+  background-color: rgba(255, 77, 77, 0.1);
 }
 
 #math-popup-textarea {
-    /* Layout */
-    flex-grow: 1;
-    width: 100%;
-    height: 0;
-    
-    /* Box Model */
-    padding: 8px;
-    box-sizing: border-box;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    outline: none;
-    resize: none;
-    
-    /* Typography & Visuals */
-    font-family: 'Consolas', 'Courier New', monospace !important;
-    font-size: 13.5px;
-    color: #f1739c;
-    background-color: #11111b;
-    caret-color: #c084fc;
+  flex-grow: 1;
+  width: 100%;
+  height: 0;
+  padding: 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  outline: none;
+  resize: none;
+  font-family: "Consolas", "Courier New", monospace !important;
+  font-size: 13.5px;
+  color: #f1739c;
+  background-color: #11111b;
+  caret-color: #c084fc;
 }
 
 #math-popup-textarea:focus {
-    /* Visuals */
-    border-color: #8b5cf6;
+  border-color: #8b5cf6;
+}
+
+/* =====================================================================
+   Floating Code Block Popup Editor
+   ===================================================================== */
+.code-popup-container {
+  position: absolute;
+  z-index: 100000;
+  width: 480px;
+  height: 260px;
+  min-width: 300px;
+  min-height: 160px;
+  padding: 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  resize: both;
+  font-family: "Poppins", sans-serif;
+  background-color: #1e1e2e;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.code-popup-container.active {
+  display: flex;
+  animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.code-popup-toolbar {
+  height: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  cursor: grab;
+}
+
+.code-popup-toolbar:active {
+  cursor: grabbing;
+}
+
+.code-popup-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b5cf6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.code-popup-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a0a0a0;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.code-popup-btn:hover {
+  background-color: #3e4446;
+  color: #ffffff;
+}
+
+#code-popup-delete:hover {
+  color: #ff4d4d;
+  background-color: rgba(255, 77, 77, 0.15);
+}
+
+#code-popup-close:hover {
+  color: #ff4d4d;
+  background-color: rgba(255, 77, 77, 0.1);
+}
+
+#code-popup-textarea {
+  flex-grow: 1;
+  width: 100%;
+  height: 0;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  outline: none;
+  resize: none;
+  font-family: "Consolas", "Courier New", monospace !important;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #a6adc8;
+  background-color: #11111b;
+  caret-color: #c084fc;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+#code-popup-textarea:focus {
+  border-color: #8b5cf6;
+}
+
+/* =====================================================================
+   Math Formula Modal Selection Options
+   ===================================================================== */
+.math-select-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  background-color: var(--bg-toolbar);
+  color: var(--text-main);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.math-select-btn:hover {
+  background-color: var(--btn-tool-hover);
+  border-color: #8b5cf6;
+}
+
+#math-popup-delete:hover {
+  color: #ff4d4d;
+  background-color: rgba(255, 77, 77, 0.15);
+}
+
+/* =====================================================================
+   Universal Language Selector Dropdown (Clean & Seamless)
+   ===================================================================== */
+/* Universal Language Selector Dropdown */
+.code-popup-lang-select {
+  height: 24px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: "Poppins", sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #c084fc;
+  background-color: var(--code-editor-bg);
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.code-popup-lang-select:focus,
+.code-popup-lang-select:hover {
+  border-color: #8b5cf6;
+}
+
+.code-popup-lang-select option {
+  background-color: var(--bg-container);
+  color: var(--text-main);
+}
+
+#code-popup-delete:hover {
+  color: #ff4d4d;
+  background-color: rgba(255, 77, 77, 0.15);
 }
