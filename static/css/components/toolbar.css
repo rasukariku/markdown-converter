@@ -349,3 +349,55 @@ Dropdown Menu (Markdown Actions)
   font-family: "Consolas", "Courier New", monospace;
   font-size: 13px;
 }
+
+/* =====================================================================
+   List Libraries Dropdown (Word-Style Visual Grids)
+   ===================================================================== */
+.list-library-dropdown {
+  min-width: 210px !important;
+  padding: 10px !important;
+}
+
+.list-library-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+
+.list-library-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.list-library-grid.numbering-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.list-choice-btn {
+  height: 38px;
+  background-color: var(--bg-container);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.list-choice-btn:hover {
+  background-color: var(--btn-tool-hover);
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+}

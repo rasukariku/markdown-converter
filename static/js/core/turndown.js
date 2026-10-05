@@ -6,7 +6,7 @@ const HR_REPLACEMENT = "\n\n─────────────────�
 const BASE_TURNDOWN_OPTIONS = {
   headingStyle: "atx",
   hr: "---",
-  bulletListMarker: "•",
+  bulletListMarker: "*", // MUST strictly use '*' so Pandoc generates native Word Bullet Lists
   codeBlockStyle: "fenced",
   emDelimiter: "_",
 };
@@ -84,6 +84,32 @@ function toUnicodeSansBold(text) {
     .join("");
 }
 
+function toRoman(num, isUpper) {
+  const map = [
+    [1000, "m"],
+    [900, "cm"],
+    [500, "d"],
+    [400, "cd"],
+    [100, "c"],
+    [90, "xc"],
+    [50, "l"],
+    [40, "xl"],
+    [10, "x"],
+    [9, "ix"],
+    [5, "v"],
+    [4, "iv"],
+    [1, "i"],
+  ];
+  let res = "";
+  for (const [val, str] of map) {
+    while (num >= val) {
+      res += str;
+      num -= val;
+    }
+  }
+  return isUpper ? res.toUpperCase() : res;
+}
+
 export function initializeTurndown() {
   if (typeof marked === "undefined" || typeof TurndownService === "undefined") {
     console.error(
@@ -118,6 +144,48 @@ export function initializeTurndown() {
     instance.addRule("horizontalRule", {
       filter: "hr",
       replacement: () => "\n\n---\n\n",
+    });
+
+    // Custom List Item Rule: Guarantees Pandoc compatibility and prevents paragraph collapse
+    instance.addRule("customListItem", {
+      filter: "li",
+      replacement: function (content, node, options) {
+        content = content
+          .replace(/^\n+/, "")
+          .replace(/\n+$/, "")
+          .replace(/\n/gm, "\n  "); // Indent nested lines by 2 spaces
+
+        let prefix = "* ";
+        const parent = node.parentNode;
+
+        if (parent && parent.nodeName === "OL") {
+          const start = parent.getAttribute("start");
+          const index = Array.prototype.indexOf.call(parent.children, node);
+          const numStyle =
+            parent.getAttribute("data-num-style") ||
+            parent.getAttribute("type") ||
+            "1.";
+          const currentNum = start ? Number(start) + index : index + 1;
+
+          if (numStyle === "A." || numStyle === "A")
+            prefix = String.fromCharCode(64 + currentNum) + ". ";
+          else if (numStyle === "a." || numStyle === "a")
+            prefix = String.fromCharCode(96 + currentNum) + ". ";
+          else if (numStyle === "1)") prefix = currentNum + ") ";
+          else if (numStyle === "(1)") prefix = "(" + currentNum + ") ";
+          else if (numStyle === "a)")
+            prefix = String.fromCharCode(96 + currentNum) + ") ";
+          else if (numStyle === "I.") prefix = toRoman(currentNum, true) + ". ";
+          else if (numStyle === "i.")
+            prefix = toRoman(currentNum, false) + ". ";
+          else prefix = currentNum + ". ";
+        } else {
+          // Standard Markdown bullet recognized by Pandoc
+          prefix = "* ";
+        }
+
+        return "\n" + prefix + content + "\n";
+      },
     });
 
     if (keepTags) {
@@ -163,7 +231,7 @@ export function initializeTurndown() {
     "a",
   ]);
 
-  // 4. WHATSAPP EXPORT TURNDOWN (Functional Substitutions for WhatsApp)
+  // 4. WHATSAPP EXPORT TURNDOWN
   const whatsappExportTurndown = new TurndownService({
     headingStyle: "atx",
     bulletListMarker: "•",
@@ -174,32 +242,22 @@ export function initializeTurndown() {
     whatsappExportTurndown.use(turndownPluginGfm.gfm);
   }
   whatsappExportTurndown.escape = (string) => string;
-
-  // Convert Headings -> Uppercase Bold Text (*HEADING*)
   whatsappExportTurndown.addRule("whatsapp_headings", {
     filter: ["h1", "h2", "h3", "h4", "h5", "h6"],
     replacement: (content) => "\n\n*" + content.trim().toUpperCase() + "*\n\n",
   });
-
-  // Convert Bold -> Single Asterisk (*bold*)
   whatsappExportTurndown.addRule("whatsapp_bold", {
     filter: ["strong", "b"],
     replacement: (content) => "*" + content.trim() + "*",
   });
-
-  // Convert Strikethrough -> Single Tilde (~strike~)
   whatsappExportTurndown.addRule("whatsapp_strike", {
     filter: ["del", "s", "strike"],
     replacement: (content) => "~" + content.trim() + "~",
   });
-
-  // Convert Horizontal Rules -> Decorative Unicode Line
   whatsappExportTurndown.addRule("whatsapp_hr", {
     filter: "hr",
     replacement: () => HR_REPLACEMENT,
   });
-
-  // Convert Links -> Text (URL) so links remain clickable in WhatsApp
   whatsappExportTurndown.addRule("whatsapp_links", {
     filter: "a",
     replacement: (content, node) => {
@@ -242,7 +300,7 @@ export function initializeTurndown() {
     replacement: () => HR_REPLACEMENT,
   });
 
-  // 6. DISCORD EXPORT TURNDOWN (**bold**, *italic*, __underline__, ~~strike~~)
+  // 6. DISCORD EXPORT TURNDOWN
   const discordExportTurndown = new TurndownService({
     headingStyle: "atx",
     bulletListMarker: "-",

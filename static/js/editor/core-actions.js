@@ -176,3 +176,94 @@ export function toggleInlineCode(syncRenderedToRaw, checkToolbarActive) {
   if (typeof checkToolbarActive === "function") checkToolbarActive();
   if (typeof syncRenderedToRaw === "function") syncRenderedToRaw();
 }
+
+/**
+ * Applies custom list styling (Bullet or Numbering Library) to active selection.
+ * Fully supports empty editor initialization and preserves caret focus.
+ *
+ * @param {string} category - 'bullet' | 'number'
+ * @param {string} styleVal - specific format key (e.g. 'disc', 'check', 'A.', '1)')
+ * @param {Function} syncRenderedToRaw - Synchronization callback.
+ */
+export function applyListStyle(category, styleVal, syncRenderedToRaw) {
+  if (!dom.renderedOutput) return;
+  dom.renderedOutput.focus();
+
+  const sel = window.getSelection();
+  const isEmpty = !dom.renderedOutput.innerText.trim();
+
+  if (isEmpty) {
+    // 1. Cleanly initialize a brand new list in an empty editor
+    if (category === "bullet") {
+      dom.renderedOutput.innerHTML = `<ul><li data-bullet-type="${styleVal}"><br></li></ul>`;
+      const ul = dom.renderedOutput.querySelector("ul");
+      if (["disc", "circle", "square"].includes(styleVal)) {
+        ul.style.listStyleType = styleVal;
+      }
+    } else {
+      const typeAttr = styleVal.startsWith("A")
+        ? "A"
+        : styleVal.startsWith("a")
+          ? "a"
+          : styleVal.startsWith("I")
+            ? "I"
+            : styleVal.startsWith("i")
+              ? "i"
+              : "1";
+      dom.renderedOutput.innerHTML = `<ol type="${typeAttr}" data-num-style="${styleVal}"><li><br></li></ol>`;
+    }
+
+    const firstLi = dom.renderedOutput.querySelector("li");
+    if (firstLi) {
+      const range = document.createRange();
+      range.setStart(firstLi, 0);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  } else {
+    // 2. Wrap or convert existing content
+    if (category === "bullet") {
+      if (styleVal === "none") {
+        document.execCommand("insertUnorderedList", false, null);
+      } else {
+        document.execCommand("insertUnorderedList", false, null);
+        if (sel.rangeCount > 0) {
+          let node = sel.anchorNode;
+          if (node.nodeType === 3) node = node.parentNode;
+          const ul = node.closest("ul");
+          if (ul) {
+            ul.setAttribute("data-bullet-type", styleVal);
+            if (["disc", "circle", "square"].includes(styleVal)) {
+              ul.style.listStyleType = styleVal;
+            } else {
+              ul.style.listStyleType = `'${styleVal === "diamond" ? "❖ " : styleVal === "arrow" ? "➢ " : "✔ "}'`;
+            }
+          }
+        }
+      }
+    } else if (category === "number") {
+      if (styleVal === "none") {
+        document.execCommand("insertOrderedList", false, null);
+      } else {
+        document.execCommand("insertOrderedList", false, null);
+        if (sel.rangeCount > 0) {
+          let node = sel.anchorNode;
+          if (node.nodeType === 3) node = node.parentNode;
+          const ol = node.closest("ol");
+          if (ol) {
+            ol.setAttribute("data-num-style", styleVal);
+            if (styleVal.startsWith("A")) ol.setAttribute("type", "A");
+            else if (styleVal.startsWith("a")) ol.setAttribute("type", "a");
+            else if (styleVal.startsWith("I")) ol.setAttribute("type", "I");
+            else if (styleVal.startsWith("i")) ol.setAttribute("type", "i");
+            else ol.setAttribute("type", "1");
+          }
+        }
+      }
+    }
+  }
+
+  dom.renderedOutput.focus();
+  if (typeof syncRenderedToRaw === "function") syncRenderedToRaw();
+}

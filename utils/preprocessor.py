@@ -2,16 +2,15 @@ import re
 
 _RE_AI_BOLD_LIST = re.compile(r'(?m)^([ \t]*)\*\*([a-zA-Z0-9]{1,3}[\.\)])[ \t]+(.*?)\*\*')
 _RE_AI_BOLD_LIST_END = re.compile(r'(?m)^([ \t]*)\*\*([a-zA-Z0-9]{1,3}[\.\)])\*\*[ \t]+')
-_RE_BULLET_BOLD = re.compile(r'(?m)^([ \t]*[\*\-\+\u2022]\s*)\*\*([^\*\n]+)\*\*([ \t]*:?)')
+_RE_BULLET_BOLD = re.compile(r'(?m)^([ \t]*[\*\-\+\u2022●○■❖➢✔]\s*)\*\*([^\*\n]+)\*\*([ \t]*:?)')
 
-# Universal structural pattern for any "Key: Value" metadata line (agnostic of specific field names)
-_RE_METADATA_LINE = re.compile(r'(?m)^(?!\s*[-*+>#`|~0-9])([A-Za-z0-9\s()\/._-]{2,45}\s*:[ \t]+.*)$')
+# Universal structural pattern for any "Key: Value" metadata line
+_RE_METADATA_LINE = re.compile(r'(?m)^(?!\s*[-*+>#`|~0-9●○■❖➢✔])([A-Za-z0-9\s()\/._-]{2,45}\s*:[ \t]+.*)$')
 
 _RE_HTML_HR = re.compile(r'<hr\s*/?>', flags=re.IGNORECASE)
 _RE_MARKDOWN_HR = re.compile(r'(?m)^\s*(\*{3,}|-{3,}|_{3,})\s*$')
 _RE_EXCESS_NEWLINES = re.compile(r'\n{3,}')
 
-# Cross-Tag Master Arrow Deduplication Regexes
 _RE_RIGHT_ARROWS_COMBINED = re.compile(
     r'(?:\\+rightarrow\b|-->|->|==>|=>|→|⇒|&rarr;|&#8594;)(?:[\s\xa0\u2000-\u200b\u202f\ufeff]|&nbsp;|<[^>]+>)*(?:\\+rightarrow\b|-->|->|==>|=>|→|⇒|&rarr;|&#8594;)+',
     re.IGNORECASE
@@ -34,10 +33,34 @@ _HR_PLACEHOLDER = '[[HR_PLACEHOLDER]]'
 _HR_REPLACEMENT = '\n\n---\n\n'
 
 
+def normalize_indented_list_paragraphs(text: str) -> str:
+    """
+    De-indents 4-space paragraph lines that follow lists outside fenced code blocks.
+    This prevents Pandoc from misinterpreting list explanations as indented code blocks.
+    """
+    if not text:
+        return ""
+
+    fenced_blocks = []
+    def save_fenced(match):
+        ph = f"@@@FENCED_BLOCK_{len(fenced_blocks)}@@@"
+        fenced_blocks.append((ph, match.group(0)))
+        return ph
+
+    # 1. Protect actual fenced code blocks (```...```)
+    cleaned = re.sub(r'```[\s\S]*?```', save_fenced, text)
+
+    # 2. Convert accidental 4-8 space indentation into 2 spaces
+    cleaned = re.sub(r'(?m)^ {4,8}(?=\S)', '  ', cleaned)
+
+    # 3. Restore actual fenced code blocks
+    for ph, original in fenced_blocks:
+        cleaned = cleaned.replace(ph, original)
+
+    return cleaned
+
+
 def wrap_unwrapped_latex_environments(text: str) -> str:
-    """
-    Safely wraps un-delimited LaTeX environments in $$ delimiters.
-    """
     if not text:
         return ""
 
@@ -57,15 +80,11 @@ def wrap_unwrapped_latex_environments(text: str) -> str:
 
 
 def collapse_all_arrows(html_or_text: str) -> str:
-    """
-    Collapses all duplicate or escaped arrow tokens across text and HTML tag boundaries.
-    """
     if not html_or_text:
         return ""
 
     text = _RE_RIGHT_ARROWS_COMBINED.sub('→', html_or_text)
     text = _RE_LEFT_ARROWS_COMBINED.sub('←', text)
-    
     text = _RE_SINGLE_RIGHT_ARROW.sub('→', text)
     text = _RE_SINGLE_RIGHT_DOUBLE_ARROW.sub('⇒', text)
     text = _RE_SINGLE_LEFT_ARROW.sub('←', text)
@@ -75,9 +94,6 @@ def collapse_all_arrows(html_or_text: str) -> str:
 
 
 def sanitize_latex_symbols_in_text(text: str) -> str:
-    """
-    Sanitize plain text TeX symbols outside of code blocks and math equations.
-    """
     if not text:
         return ""
 
@@ -151,9 +167,6 @@ def sanitize_latex_symbols_in_text(text: str) -> str:
 
 
 def preprocess_markdown(markdown_content: str) -> tuple[str, str]:
-    """
-    Preprocess markdown content for Pandoc conversion.
-    """
     if not markdown_content:
         return "", ""
 
@@ -165,7 +178,10 @@ def preprocess_markdown(markdown_content: str) -> tuple[str, str]:
     
     markdown_content = sanitize_latex_symbols_in_text(markdown_content)
 
-    # Universal metadata separation: automatically isolate any Key: Value line into its own paragraph
+    # Normalize 4-space indented list continuation paragraphs to eliminate code block false-positives
+    markdown_content = normalize_indented_list_paragraphs(markdown_content)
+
+    # Universal metadata separation
     markdown_content = _RE_METADATA_LINE.sub(r'\1\n\n', markdown_content)
     
     markdown_content = _RE_HTML_HR.sub(f'\n\n{_HR_PLACEHOLDER}\n\n', markdown_content)

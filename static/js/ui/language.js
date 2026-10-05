@@ -37,7 +37,7 @@ const translations = Object.freeze({
 
     btnOpenRaw: "Ekspor Markdown",
     menuExportStd: "📤 Standard Markdown (LaTeX)",
-    menuExportNotion: "📤 Notion & Obsidian",
+    menuExportNotion: "📤 Notion (KaTeX)",
     menuExportWhatsApp: "💬 WhatsApp Mode",
     menuExportTelegram: "✈️ Telegram Mode",
     menuExportDiscord: "🎮 Discord Mode",
@@ -83,7 +83,7 @@ const translations = Object.freeze({
 
     btnOpenRaw: "Export Markdown",
     menuExportStd: "📤 Standard Markdown (LaTeX)",
-    menuExportNotion: "📤 Notion & Obsidian",
+    menuExportNotion: "📤 Notion (KaTeX)",
     menuExportWhatsApp: "💬 WhatsApp Mode",
     menuExportTelegram: "✈️ Telegram Mode",
     menuExportDiscord: "🎮 Discord Mode",

@@ -39,9 +39,13 @@ export function initializeFormatCycle() {
 
 /**
  * Updates active visual states for toolbar toggle buttons and synchronization for block select.
+ * Uses direct DOM ancestry inspection to accurately detect active Bullet and Numbered lists.
  */
 export function checkToolbarActive() {
   TOOLBAR_COMMANDS.forEach(({ id, cmd }) => {
+    // List buttons are handled via precise DOM inspection below
+    if (id === "btn-ul" || id === "btn-ol") return;
+
     const element = document.getElementById(id);
     if (element) {
       try {
@@ -56,6 +60,34 @@ export function checkToolbarActive() {
       }
     }
   });
+
+  // Real DOM Ancestry Detection for Bullet and Numbered Lists
+  try {
+    const sel = window.getSelection();
+    const btnUl = document.getElementById("btn-ul");
+    const btnOl = document.getElementById("btn-ol");
+
+    if (
+      sel &&
+      sel.rangeCount > 0 &&
+      dom.renderedOutput &&
+      dom.renderedOutput.contains(sel.anchorNode)
+    ) {
+      let node = sel.anchorNode;
+      if (node.nodeType === 3) node = node.parentNode;
+
+      const hasUl = Boolean(node.closest("ul"));
+      const hasOl = Boolean(node.closest("ol"));
+
+      if (btnUl) btnUl.classList.toggle("active", hasUl);
+      if (btnOl) btnOl.classList.toggle("active", hasOl);
+    } else {
+      if (btnUl) btnUl.classList.remove("active");
+      if (btnOl) btnOl.classList.remove("active");
+    }
+  } catch (e) {
+    // Suppress inspection errors
+  }
 
   // Synchronize block format select element state
   try {
@@ -74,6 +106,29 @@ export function checkToolbarActive() {
   } catch (e) {
     // Suppress errors on unselected state
   }
+}
+
+/**
+ * Intercept mousedown on the toolbar to prevent focus stealing from contenteditable,
+ * preserving active DOM selections across all browser engines.
+ */
+document.addEventListener("DOMContentLoaded", () => {
+  const toolbar = document.getElementById("main-toolbar");
+  if (toolbar) {
+    toolbar.addEventListener("mousedown", (e) => {
+      // Prevent focus stealing on all buttons, including list choice dropdown items
+      const button = e.target.closest("button");
+      if (button) {
+        e.preventDefault();
+      }
+    });
+  }
+});
+
+if (dom.renderedOutput) {
+  ["keyup", "mouseup", "click"].forEach((evt) =>
+    dom.renderedOutput.addEventListener(evt, checkToolbarActive),
+  );
 }
 
 /**

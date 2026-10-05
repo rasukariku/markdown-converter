@@ -8,6 +8,7 @@ import {
   setDirection,
   toggleFullscreen,
   toggleInlineCode,
+  applyListStyle,
 } from "./editor/core-actions.js";
 import { initializeDialogs, initializeFindReplace } from "./editor/dialogs.js";
 import { initializePasteInterceptors } from "./editor/paste.js";
@@ -210,4 +211,48 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch (err) {
     console.error("[WARN] Failed to restore local draft:", err);
   }
+
+  // List Library Dropdown Toggles
+  const btnUl = document.getElementById("btn-ul");
+  const bulletDropdown = document.getElementById("bullet-dropdown-menu");
+  const btnOl = document.getElementById("btn-ol");
+  const numberingDropdown = document.getElementById("numbering-dropdown-menu");
+
+  if (btnUl && bulletDropdown) {
+    btnUl.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (numberingDropdown) numberingDropdown.classList.remove("active");
+      bulletDropdown.classList.toggle("active");
+    };
+  }
+
+  if (btnOl && numberingDropdown) {
+    btnOl.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (bulletDropdown) bulletDropdown.classList.remove("active");
+      numberingDropdown.classList.toggle("active");
+    };
+  }
+
+  // Bind Bullet Choices
+  document.querySelectorAll("[data-list-style]").forEach((btn) => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const style = btn.getAttribute("data-list-style");
+      bulletDropdown.classList.remove("active");
+      applyListStyle("bullet", style, safeBoundSyncRenderedToRaw);
+    };
+  });
+
+  // Bind Numbering Choices
+  document.querySelectorAll("[data-num-style]").forEach((btn) => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const style = btn.getAttribute("data-num-style");
+      numberingDropdown.classList.remove("active");
+      applyListStyle("number", style, safeBoundSyncRenderedToRaw);
+    };
+  });
 });
