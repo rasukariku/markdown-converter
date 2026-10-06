@@ -298,6 +298,8 @@ function updateMathElementInPlace(wrapper, newLatex) {
   if (!rawLine || !previewContainer) return;
   rawLine.textContent = newLatex;
 
+  wrapper.setAttribute("data-raw-latex", encodeURIComponent(newLatex));
+
   const formatted = isDisplay ? `$$ ${newLatex} $$` : `$${newLatex}$`;
   previewContainer.innerHTML = formatted;
 
@@ -437,8 +439,19 @@ export function initializeLivePreview() {
       const mathEl = mathWrapper.querySelector("mjx-container") || mathWrapper;
       activeMathContainer = mathEl;
 
-      const rawLine = mathWrapper.querySelector(".math-raw-line");
-      const rawTex = rawLine ? rawLine.textContent.trim() : "";
+      let rawTex = "";
+      const rawAttr = mathWrapper.getAttribute("data-raw-latex");
+      if (rawAttr) {
+        try {
+          rawTex = decodeURIComponent(rawAttr).trim();
+        } catch (err) {
+          rawTex = "";
+        }
+      }
+      if (!rawTex) {
+        const rawLine = mathWrapper.querySelector(".math-raw-line");
+        rawTex = rawLine ? rawLine.textContent.trim() : "";
+      }
 
       const textarea = document.getElementById("math-popup-textarea");
       textarea.value = rawTex;

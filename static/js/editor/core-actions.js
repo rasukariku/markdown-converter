@@ -13,6 +13,85 @@ const SVG_ICON_EXIT_FULLSCREEN =
 
 const FONT_NAME_TIMES_NEW_ROMAN = "Times New Roman";
 
+/**
+ * Safely inserts an HTML snippet into the active DOM selection using native Range API.
+ * Eliminates dependency on deprecated execCommand('insertHTML').
+ *
+ * @param {string} htmlString - Valid HTML markup to insert.
+ * @returns {boolean} True if insertion succeeded.
+ */
+function insertHtmlViaRange(htmlString) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !dom.renderedOutput.contains(sel.anchorNode)) {
+    return false;
+  }
+
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+
+  const template = document.createElement("template");
+  template.innerHTML = htmlString;
+  const fragment = template.content;
+  const lastInsertedNode = fragment.lastChild;
+
+  range.insertNode(fragment);
+
+  if (lastInsertedNode) {
+    range.setStartAfter(lastInsertedNode);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  return true;
+}
+
+/**
+ * Transforms the enclosing block element (p, h1-h6, blockquote) using modern DOM mutation.
+ * Replaces unreliable and non-standard browser implementations of execCommand('formatBlock').
+ *
+ * @param {string} targetTag - Target HTML block element tag name.
+ * @returns {boolean} True if transformation succeeded.
+ */
+function applyBlockFormat(targetTag) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !dom.renderedOutput.contains(sel.anchorNode)) {
+    return false;
+  }
+
+  let node = sel.anchorNode;
+  if (node.nodeType === Node.TEXT_NODE) {
+    node = node.parentNode;
+  }
+
+  const blockContainer = node.closest("p, h1, h2, h3, h4, h5, h6, blockquote");
+  if (!blockContainer || !dom.renderedOutput.contains(blockContainer)) {
+    return false;
+  }
+
+  const cleanTag = targetTag.replace(/[<>]/g, "").toLowerCase();
+  if (blockContainer.tagName.toLowerCase() === cleanTag) {
+    return true;
+  }
+
+  const newBlock = document.createElement(cleanTag);
+  while (blockContainer.firstChild) {
+    newBlock.appendChild(blockContainer.firstChild);
+  }
+
+  if (blockContainer.hasAttribute("dir")) {
+    newBlock.setAttribute("dir", blockContainer.getAttribute("dir"));
+  }
+
+  blockContainer.parentNode.replaceChild(newBlock, blockContainer);
+
+  const range = document.createRange();
+  range.selectNodeContents(newBlock);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  return true;
+}
+
 // =========================================================================
 // EXPORTED FUNCTIONS
 // =========================================================================
@@ -58,6 +137,21 @@ export function formatDoc(
         sel.removeAllRanges();
         sel.addRange(range);
       }
+    } else if (cmd === "formatBlock" && value) {
+      const handled = applyBlockFormat(value);
+      if (!handled) {
+        const commandValue = value.startsWith("<") ? value : `<${value}>`;
+        document.execCommand(cmd, false, commandValue);
+      }
+    } else if (cmd === "insertHTML" && value) {
+      const handled = insertHtmlViaRange(value);
+      if (!handled) {
+        document.execCommand(cmd, false, value);
+      }
+    } else if (cmd === "insertHorizontalRule") {
+      const hrHtml =
+        '<p class="hr-raw-line" contenteditable="true" data-chars="---">---</p><p><br></p>';
+      insertHtmlViaRange(hrHtml);
     } else {
       let commandValue = value;
       if (cmd === "formatBlock" && value) {
@@ -85,7 +179,9 @@ export function formatDoc(
 }
 
 export function insertHorizontalRule(formatDoc) {
-  formatDoc("insertHorizontalRule");
+  const hrHtml =
+    '<p class="hr-raw-line" contenteditable="true" data-chars="---">---</p><p><br></p>';
+  formatDoc("insertHTML", hrHtml);
 }
 
 export function toggleToolbar() {

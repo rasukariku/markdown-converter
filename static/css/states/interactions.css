@@ -7,83 +7,90 @@ Solid Block UI, Text Selection & MathJax Visibility
  * !important is strictly required here to override native browser 
  * selection defaults and ensure consistent theming.
  */
-::selection, *::selection {
-    /* Visuals */
-    background-color: #3b82f6 !important;
-    color: #ffffff !important;
-    fill: #ffffff !important;
+::selection,
+*::selection {
+  /* Visuals */
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  fill: #ffffff !important;
 }
 
 body.light-mode ::selection,
 body.light-mode *::selection {
-    /* Visuals */
-    background-color: #93c5fd !important;
-    color: #1e3a8a !important;
-    fill: #1e3a8a !important;
+  /* Visuals */
+  background-color: #93c5fd !important;
+  color: #1e3a8a !important;
+  fill: #1e3a8a !important;
 }
 
 /* Force Selectability & Base Styles */
 #rendered-output mjx-container,
 #rendered-output mjx-container *,
 #rendered-output table {
-    /* Interaction */
-    cursor: text;
-    user-select: text !important;
-    -webkit-user-select: text !important;
+  /* Interaction */
+  cursor: text;
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
-#rendered-output mjx-container,
 #rendered-output table {
-    /* Positioning */
-    position: relative;
-    
-    /* Box Model */
-    border: 1px solid transparent;
-    border-radius: 4px;
-    
-    /* Transitions */
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+#rendered-output table:hover {
+  border-color: var(--border-color);
 }
 
 #rendered-output mjx-container {
-    /* Layout */
-    display: inline-block;
-    
-    /* Visuals */
-    color: var(--text-main) !important;
-    fill: currentColor !important;
+  position: relative;
+  border: none !important;
+  outline: none !important;
+}
+
+#rendered-output mjx-container {
+  /* Layout */
+  display: inline-block;
+
+  /* Visuals */
+  color: var(--text-main) !important;
+  fill: currentColor !important;
 }
 
 #rendered-output mjx-container:hover,
 #rendered-output table:hover {
-    /* Visuals */
-    border-color: var(--border-color);
+  /* Visuals */
+  border-color: var(--border-color);
 }
 
 #rendered-output mjx-container[display="true"] {
-    /* Layout */
-    display: block;
-    margin: 10px 0;
-    padding: 8px;
-    text-align: center;
+  /* Layout */
+  display: block;
+  margin: 10px 0;
+  padding: 8px;
+  text-align: center;
 }
 
 mjx-container[jax="CHTML"],
 mjx-container[jax="SVG"],
 mjx-container svg {
-    /* Visuals */
-    background-color: transparent;
+  /* Visuals */
+  background-color: transparent;
 }
 
 /* Flash animation on copy */
 .copy-flash {
-    /* Box Model */
-    outline: 2px solid #3b82f6 !important;
-    border-color: transparent !important;
-    
-    /* Visuals */
-    /* Fixed syntax: added spaces after commas in rgba() */
-    background-color: rgba(59, 130, 246, 0.1) !important; 
+  /* Box Model */
+  outline: 2px solid #3b82f6 !important;
+  border-color: transparent !important;
+
+  /* Visuals */
+  /* Fixed syntax: added spaces after commas in rgba() */
+  background-color: rgba(59, 130, 246, 0.1) !important;
 }
 
 /* 
@@ -92,21 +99,21 @@ mjx-container svg {
  * aggressive inline styles and ensure the selection is visible.
  */
 .math-selected {
-    /* Box Model */
-    border-radius: 4px;
-    
-    /* Visuals */
-    background-color: #3b82f6 !important;
-    color: #ffffff !important;
-    fill: #ffffff !important;
-    
-    /* Transitions */
-    transition: background-color 0.1s ease;
+  /* Box Model */
+  border-radius: 4px;
+
+  /* Visuals */
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  fill: #ffffff !important;
+
+  /* Transitions */
+  transition: background-color 0.1s ease;
 }
 
 body.light-mode .math-selected {
-    /* Visuals */
-    background-color: #93c5fd !important;
-    color: #1e3a8a !important;
-    fill: #1e3a8a !important;
+  /* Visuals */
+  background-color: #93c5fd !important;
+  color: #1e3a8a !important;
+  fill: #1e3a8a !important;
 }

@@ -409,22 +409,9 @@ body.light-mode #rendered-output code:not(pre code) {
   border-color: #8b5cf6 !important;
 }
 
-.math-wrapper::after {
-  content: "";
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border: 1.5px dashed #8b5cf6;
-  border-radius: 8px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-}
-
+.math-wrapper::after,
 .math-wrapper:hover::after {
-  opacity: 1;
+  display: none !important;
 }
 
 .math-preview-rendered {

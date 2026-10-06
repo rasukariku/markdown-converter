@@ -109,14 +109,13 @@ export function checkToolbarActive() {
 }
 
 /**
- * Intercept mousedown on the toolbar to prevent focus stealing from contenteditable,
- * preserving active DOM selections across all browser engines.
+ * Intercepts mousedown on toolbar buttons to prevent focus stealing from contenteditable,
+ * preserving active DOM text selections while allowing dropdown elements to open.
  */
 document.addEventListener("DOMContentLoaded", () => {
   const toolbar = document.getElementById("main-toolbar");
   if (toolbar) {
     toolbar.addEventListener("mousedown", (e) => {
-      // Prevent focus stealing on all buttons, including list choice dropdown items
       const button = e.target.closest("button");
       if (button) {
         e.preventDefault();
@@ -125,29 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-if (dom.renderedOutput) {
-  ["keyup", "mouseup", "click"].forEach((evt) =>
-    dom.renderedOutput.addEventListener(evt, checkToolbarActive),
-  );
-}
-
-/**
- * Intercept mousedown on the toolbar to prevent focus stealing from contenteditable,
- * preserving active DOM selections across all browser engines.
- */
-document.addEventListener("DOMContentLoaded", () => {
-  const toolbar = document.getElementById("main-toolbar");
-  if (toolbar) {
-    toolbar.addEventListener("mousedown", (e) => {
-      const button = e.target.closest("button");
-      // Prevent selection collapse on buttons, while allowing select dropdowns to open
-      if (button) {
-        e.preventDefault();
-      }
-    });
-  }
-});
-
+// Single unified registration for contenteditable interaction polling
 if (dom.renderedOutput) {
   ["keyup", "mouseup", "click"].forEach((evt) =>
     dom.renderedOutput.addEventListener(evt, checkToolbarActive),

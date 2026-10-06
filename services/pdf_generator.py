@@ -2,7 +2,9 @@ import os
 import tempfile
 import platform
 import pypandoc
+import threading
 
+_PDF_GENERATION_LOCK = threading.Lock()
 _MATHJAX_URL = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'
 _PANDOC_EXTRA_ARGS = ['--standalone', f'--mathjax={_MATHJAX_URL}']
 
@@ -97,65 +99,75 @@ def _generate_pdf_linux(source_text_html: str, input_format: str) -> tuple[str, 
     temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
     temp_pdf.close()
     
-    playwright = None
-    browser = None
-    
-    try:
-        html_string = pypandoc.convert_text(
-            source_text_html, 'html', format=input_format, extra_args=_PANDOC_EXTRA_ARGS
-        )
+    with _PDF_GENERATION_LOCK:
+        playwright = None
+        browser = None
+        page = None
         
-        html_string = html_string.replace('</head>', f'{_PDF_CSS_STYLES}</head>')
-        
-        playwright = sync_playwright().start()
-        browser = playwright.chromium.launch(
-            headless=True,
-            args=[
-                "--disable-dev-shm-usage",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-gpu"
-            ]
-        )
-        page = browser.new_page()
-        page.set_content(html_string, wait_until='networkidle')
-        
-        page.evaluate("""() => {
-            if (window.MathJax && window.MathJax.typesetPromise) {
-                return window.MathJax.typesetPromise();
-            }
-        }""")
-        page.wait_for_timeout(300)
-
-        page.pdf(
-            path=temp_pdf.name,
-            format='A4',
-            margin={
-                'top': '2.54cm', 
-                'right': '2.54cm', 
-                'bottom': '2.54cm', 
-                'left': '2.54cm'
-            },
-            print_background=True
-        )
-        
-        return temp_pdf.name, None
-        
-    except Exception as e:
         try:
-            os.unlink(temp_pdf.name)
-        except OSError:
-            pass
-        return None, f"Linux PDF Engine Error: {str(e)}"
-    finally:
-        # Guarantee complete Chromium process teardown
-        if browser:
+            html_string = pypandoc.convert_text(
+                source_text_html, 'html', format=input_format, extra_args=_PANDOC_EXTRA_ARGS
+            )
+            
+            html_string = html_string.replace('</head>', f'{_PDF_CSS_STYLES}</head>')
+            
+            playwright = sync_playwright().start()
+            browser = playwright.chromium.launch(
+                headless=True,
+                args=[
+                    "--disable-dev-shm-usage",
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-gpu",
+                    "--no-zygote",
+                    "--disable-extensions",
+                    "--js-flags=--max-old-space-size=256"
+                ]
+            )
+            page = browser.new_page()
+            page.set_content(html_string, wait_until='networkidle')
+            
+            page.evaluate("""() => {
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    return window.MathJax.typesetPromise();
+                }
+            }""")
+            page.wait_for_timeout(300)
+
+            page.pdf(
+                path=temp_pdf.name,
+                format='A4',
+                margin={
+                    'top': '2.54cm', 
+                    'right': '2.54cm', 
+                    'bottom': '2.54cm', 
+                    'left': '2.54cm'
+                },
+                print_background=True
+            )
+            
+            return temp_pdf.name, None
+            
+        except Exception as e:
             try:
-                browser.close()
-            except Exception:
+                os.unlink(temp_pdf.name)
+            except OSError:
                 pass
-        if playwright:
-            try:
-                playwright.stop()
-            except Exception:
-                pass
+            return None, f"Linux PDF Engine Error: {str(e)}"
+        finally:
+            # Defensive teardown to eliminate orphan processes and zombie workers
+            if page:
+                try:
+                    page.close()
+                except Exception:
+                    pass
+            if browser:
+                try:
+                    browser.close()
+                except Exception:
+                    pass
+            if playwright:
+                try:
+                    playwright.stop()
+                except Exception:
+                    pass

@@ -153,17 +153,19 @@ function createInteractiveMathWrapper(mathContent, isDisplay) {
     ? `$$ ${cleanContent} $$`
     : `$${cleanContent}$`;
 
+  const encodedContent = encodeURIComponent(cleanContent);
+
   if (isDisplay) {
     return `
-            <div class="${wrapperClass}" contenteditable="false" data-math-display="${displayAttr}">
-                <p class="math-raw-line ${displayClass}" contenteditable="true" data-delimiter-left="${delim}" data-delimiter-right="${delim}">${cleanContent}</p>
+            <div class="${wrapperClass}" contenteditable="false" data-math-display="${displayAttr}" data-raw-latex="${encodedContent}">
+                <p class="math-raw-line ${displayClass} tex2jax_ignore" contenteditable="true" data-delimiter-left="${delim}" data-delimiter-right="${delim}">${cleanContent}</p>
                 <div class="math-preview-rendered" style="cursor: pointer;">${previewLaTeX}</div>
             </div>
         `.trim();
   } else {
     return `
-            <span class="${wrapperClass}" contenteditable="false" data-math-display="${displayAttr}">
-                <span class="math-raw-line ${displayClass}" contenteditable="true" data-delimiter-left="${delim}" data-delimiter-right="${delim}">${cleanContent}</span>
+            <span class="${wrapperClass}" contenteditable="false" data-math-display="${displayAttr}" data-raw-latex="${encodedContent}">
+                <span class="math-raw-line ${displayClass} tex2jax_ignore" contenteditable="true" data-delimiter-left="${delim}" data-delimiter-right="${delim}">${cleanContent}</span>
                 <span class="math-preview-rendered" style="cursor: pointer;">$${cleanContent}$</span>
             </span>
         `.trim();
@@ -358,8 +360,20 @@ export function syncRenderedToRaw(standardTurndown, updateCounter) {
       const clone = dom.renderedOutput.cloneNode(true);
 
       clone.querySelectorAll(".math-wrapper").forEach((wrapper) => {
-        const rawEl = wrapper.querySelector(".math-raw-line");
-        const rawText = rawEl ? rawEl.textContent.trim() : "";
+        let rawText = "";
+        const rawAttr = wrapper.getAttribute("data-raw-latex");
+        if (rawAttr) {
+          try {
+            rawText = decodeURIComponent(rawAttr).trim();
+          } catch (e) {
+            rawText = "";
+          }
+        }
+        if (!rawText) {
+          const rawEl = wrapper.querySelector(".math-raw-line");
+          rawText = rawEl ? rawEl.textContent.trim() : "";
+        }
+
         const isDisplay = wrapper.getAttribute("data-math-display") === "true";
         const formattedLaTeX = isDisplay
           ? `\n\n$$ ${rawText} $$\n\n`

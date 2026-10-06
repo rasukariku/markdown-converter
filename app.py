@@ -5,6 +5,7 @@ import csv
 import shutil
 import pypandoc
 from flask import Flask, request, send_file, render_template, jsonify
+from werkzeug.exceptions import RequestEntityTooLarge
 from docx import Document
 from utils.preprocessor import preprocess_markdown
 from utils.file_manager import get_buffer_and_cleanup
@@ -35,6 +36,21 @@ except OSError as e:
         raise e
 
 app = Flask(__name__)
+
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
+@app.errorhandler(413)
+@app.errorhandler(RequestEntityTooLarge)
+def handle_payload_too_large(error):
+    """
+    Returns structured JSON for file upload endpoints to prevent frontend script parsing crashes.
+    """
+    if request.path == '/upload_parse':
+        return jsonify({
+            'status': 'error',
+            'message': 'File size exceeds the 16 MB limit.'
+        }), 413
+    return "Payload exceeds the 16 MB maximum limit.", 413
 
 ALLOWED_FORMATS = {'docx', 'pdf', 'html'}
 ALLOWED_UPLOAD_EXTENSIONS = {'.txt', '.md', '.docx', '.csv', '.xlsx'}
